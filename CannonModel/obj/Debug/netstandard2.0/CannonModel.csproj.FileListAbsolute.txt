@@ -1,0 +1,9 @@
+D:\UM\ISG\Cannon_Project\CannonModel\bin\Debug\netstandard2.0\CannonModel.deps.json
+D:\UM\ISG\Cannon_Project\CannonModel\bin\Debug\netstandard2.0\CannonModel.dll
+D:\UM\ISG\Cannon_Project\CannonModel\bin\Debug\netstandard2.0\CannonModel.pdb
+D:\UM\ISG\Cannon_Project\CannonModel\obj\Debug\netstandard2.0\CannonModel.csprojAssemblyReference.cache
+D:\UM\ISG\Cannon_Project\CannonModel\obj\Debug\netstandard2.0\CannonModel.AssemblyInfoInputs.cache
+D:\UM\ISG\Cannon_Project\CannonModel\obj\Debug\netstandard2.0\CannonModel.AssemblyInfo.cs
+D:\UM\ISG\Cannon_Project\CannonModel\obj\Debug\netstandard2.0\CannonModel.csproj.CoreCompileInputs.cache
+D:\UM\ISG\Cannon_Project\CannonModel\obj\Debug\netstandard2.0\CannonModel.dll
+D:\UM\ISG\Cannon_Project\CannonModel\obj\Debug\netstandard2.0\CannonModel.pdb

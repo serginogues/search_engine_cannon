@@ -1,0 +1,12 @@
+D:\UM\ISG\Cannon_Project\CannonBoardConsole\bin\Debug\CannonBoardConsole.exe.config
+D:\UM\ISG\Cannon_Project\CannonBoardConsole\bin\Debug\CannonBoardConsole.exe
+D:\UM\ISG\Cannon_Project\CannonBoardConsole\bin\Debug\CannonBoardConsole.pdb
+D:\UM\ISG\Cannon_Project\CannonBoardConsole\bin\Debug\CannonModel.dll
+D:\UM\ISG\Cannon_Project\CannonBoardConsole\bin\Debug\CannonModel.pdb
+D:\UM\ISG\Cannon_Project\CannonBoardConsole\obj\Debug\CannonBoardConsole.csprojAssemblyReference.cache
+D:\UM\ISG\Cannon_Project\CannonBoardConsole\obj\Debug\CannonBoardConsole.csproj.CoreCompileInputs.cache
+D:\UM\ISG\Cannon_Project\CannonBoardConsole\obj\Debug\CannonBoardConsole.csproj.CopyComplete
+D:\UM\ISG\Cannon_Project\CannonBoardConsole\obj\Debug\CannonBoardConsole.exe
+D:\UM\ISG\Cannon_Project\CannonBoardConsole\obj\Debug\CannonBoardConsole.pdb
+D:\UM\ISG\Cannon_Project\CannonBoardConsole\bin\Debug\SearchEngine.dll
+D:\UM\ISG\Cannon_Project\CannonBoardConsole\bin\Debug\SearchEngine.pdb

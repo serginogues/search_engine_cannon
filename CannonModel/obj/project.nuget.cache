@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "dgSpecHash": "bkHm1E3oS+sXprVv7HfUCjiaWT71ODvnVGGTACrG6sYEfOlzf3Kf6TUiEzpbUGoQOoDDjSf5HyK7ARaom5m2MA==",
+  "success": true,
+  "projectFilePath": "D:\\UM\\ISG\\Cannon_Project\\CannonModel\\CannonModel.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\nogue\\.nuget\\packages\\microsoft.netcore.platforms\\1.1.0\\microsoft.netcore.platforms.1.1.0.nupkg.sha512",
+    "C:\\Users\\nogue\\.nuget\\packages\\netstandard.library\\2.0.3\\netstandard.library.2.0.3.nupkg.sha512"
+  ],
+  "logs": []
+}
