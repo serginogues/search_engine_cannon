@@ -76,22 +76,6 @@ namespace CannonModel
                     (t1, t2) => t1.Concat(new T[] { t2 }));
         }
 
-        /// <summary>
-        /// https://stackoverflow.com/questions/200574/linq-equivalent-of-foreach-for-ienumerablet
-        /// </summary>
-        public static void ForEach<T>(this IEnumerable<T> enumeration, Action<T> action)
-        {
-            foreach (T item in enumeration)
-            {
-                action(item);
-            }
-        }
-
-        public static bool IsSequential(int[] array)
-        {
-            return array.Zip(array.Skip(1), (a, b) => (a + 1) == b).All(x => x);
-        }
-
         public enum ISoldiers
         {
             empty,
@@ -99,14 +83,6 @@ namespace CannonModel
             light_soldier,
             dark_town,
             light_town
-        }
-
-        public enum IUserActions
-        {
-            click_soldier,
-            click_shoot,
-            reset_available_moves,
-            click_moves
         }
 
         public enum IBounds

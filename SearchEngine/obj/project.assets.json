@@ -201,11 +201,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "D:\\UM\\ISG\\Cannon_Project\\SearchEngine\\SearchEngine.csproj",
+      "projectUniqueName": "D:\\UM\\ISG\\search_engine_cannon\\SearchEngine\\SearchEngine.csproj",
       "projectName": "SearchEngine",
-      "projectPath": "D:\\UM\\ISG\\Cannon_Project\\SearchEngine\\SearchEngine.csproj",
+      "projectPath": "D:\\UM\\ISG\\search_engine_cannon\\SearchEngine\\SearchEngine.csproj",
       "packagesPath": "C:\\Users\\nogue\\.nuget\\packages\\",
-      "outputPath": "D:\\UM\\ISG\\Cannon_Project\\SearchEngine\\obj\\",
+      "outputPath": "D:\\UM\\ISG\\search_engine_cannon\\SearchEngine\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "C:\\Users\\nogue\\AppData\\Roaming\\NuGet\\NuGet.Config",
@@ -222,8 +222,8 @@
         "netstandard2.0": {
           "targetAlias": "netstandard2.0",
           "projectReferences": {
-            "D:\\UM\\ISG\\Cannon_Project\\CannonModel\\CannonModel.csproj": {
-              "projectPath": "D:\\UM\\ISG\\Cannon_Project\\CannonModel\\CannonModel.csproj"
+            "D:\\UM\\ISG\\search_engine_cannon\\CannonModel\\CannonModel.csproj": {
+              "projectPath": "D:\\UM\\ISG\\search_engine_cannon\\CannonModel\\CannonModel.csproj"
             }
           }
         }

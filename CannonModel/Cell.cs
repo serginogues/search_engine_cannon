@@ -8,15 +8,23 @@ namespace CannonModel
     {
         public int Row { get; set; }
         public int Column { get; set; }
-        public CannonUtils.ISoldiers CurrentValue { get; set; }
-        public CannonUtils.IMoves Action { get; set; }
+        public CannonUtils.ISoldiers Piece { get; set; }
 
         public Cell(int _row, int _column)
         {
             Row = _row;
             Column = _column;
-            CurrentValue = CannonUtils.ISoldiers.empty;
-            Action = CannonUtils.IMoves.none;
+            Piece = CannonUtils.ISoldiers.empty;
+        }
+
+        public Cell DeepCopy()
+        {
+            return new Cell(Row, Column)
+            {
+                Piece = Piece,
+                Row = Row,
+                Column = Column
+            };
         }
     }
 }

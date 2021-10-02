@@ -10,3 +10,15 @@ D:\UM\ISG\Cannon_Project\SearchEngine\bin\Debug\netstandard2.0\CannonModel.pdb
 D:\UM\ISG\Cannon_Project\SearchEngine\obj\Debug\netstandard2.0\SearchEngine.csproj.CopyComplete
 D:\UM\ISG\Cannon_Project\SearchEngine\obj\Debug\netstandard2.0\SearchEngine.dll
 D:\UM\ISG\Cannon_Project\SearchEngine\obj\Debug\netstandard2.0\SearchEngine.pdb
+D:\UM\ISG\search_engine_cannon\SearchEngine\bin\Debug\netstandard2.0\SearchEngine.deps.json
+D:\UM\ISG\search_engine_cannon\SearchEngine\bin\Debug\netstandard2.0\SearchEngine.dll
+D:\UM\ISG\search_engine_cannon\SearchEngine\bin\Debug\netstandard2.0\SearchEngine.pdb
+D:\UM\ISG\search_engine_cannon\SearchEngine\bin\Debug\netstandard2.0\CannonModel.dll
+D:\UM\ISG\search_engine_cannon\SearchEngine\bin\Debug\netstandard2.0\CannonModel.pdb
+D:\UM\ISG\search_engine_cannon\SearchEngine\obj\Debug\netstandard2.0\SearchEngine.csprojAssemblyReference.cache
+D:\UM\ISG\search_engine_cannon\SearchEngine\obj\Debug\netstandard2.0\SearchEngine.AssemblyInfoInputs.cache
+D:\UM\ISG\search_engine_cannon\SearchEngine\obj\Debug\netstandard2.0\SearchEngine.AssemblyInfo.cs
+D:\UM\ISG\search_engine_cannon\SearchEngine\obj\Debug\netstandard2.0\SearchEngine.csproj.CoreCompileInputs.cache
+D:\UM\ISG\search_engine_cannon\SearchEngine\obj\Debug\netstandard2.0\SearchEngine.csproj.CopyComplete
+D:\UM\ISG\search_engine_cannon\SearchEngine\obj\Debug\netstandard2.0\SearchEngine.dll
+D:\UM\ISG\search_engine_cannon\SearchEngine\obj\Debug\netstandard2.0\SearchEngine.pdb
