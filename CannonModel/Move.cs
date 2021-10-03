@@ -23,5 +23,10 @@ namespace CannonModel
             NewCell = new_c;
             Type = type;
         }
+
+        public Move DeepCopy()
+        {
+            return new Move(OldCell.DeepCopy(), NewCell.DeepCopy(), Type);
+        }
     }
 }

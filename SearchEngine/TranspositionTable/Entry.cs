@@ -1,28 +1,21 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Text;
 using CannonModel;
 
 namespace SearchEngine
 {
-    public class TTEntry
+    public class Entry
     {
-        /// <summary>
-        /// Value from evaluation function
-        /// </summary>
         public int Value { get; set; }
         public AIUtils.ITTEntryFlag Flag { get; set; }
-        /// <summary>
-        /// Best move for this state
-        /// </summary>
         public int BestMove { get; set; }
         public int Depth { get; set; }
-        /// <summary>
-        /// Zobrist Hashing key
-        /// </summary>
-        public int EntryKey { get; set; }
+        public long EntryKey { get; set; }
+        public List<int> ChildList { get; set; }
 
-        public TTEntry(int key_)
+        public Entry(long key_)
         {
             Value = 0;
             Flag = AIUtils.ITTEntryFlag.exact_value;
@@ -30,6 +23,5 @@ namespace SearchEngine
             Depth = 0;
             EntryKey = key_;
         }
-
     }
 }

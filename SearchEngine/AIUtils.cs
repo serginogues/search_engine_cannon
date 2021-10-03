@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using CannonModel;
 using System.Linq;
+using System.Collections;
 
 namespace SearchEngine
 {
@@ -21,28 +22,22 @@ namespace SearchEngine
             upper_bound
         }
 
-        //static int MiniMax(Node s, int depth_, AIUtils.IType type_)
-        //{
-        //    if (TerminalState(s) || depth_ == 0) { return Evaluate(s); }
-        //    int score = type_ == AIUtils.IType.MAX ? -1000000 : 1000000;
+        public static int getIntFromBitArray(BitArray bitArray)
+        {
+            if (bitArray.Length > 32)
+                throw new ArgumentException("Argument length shall be at most 32 bits.");
 
-        //    if (type_ == AIUtils.IType.MAX)
-        //    {
-        //        for (int child = 1; child < s.ChildList.Count; child++)
-        //        {
-        //            int value = MiniMax(s.ChildList[child], depth_ - 1, AIUtils.IType.MIN);
-        //            if (value > score) { score = value; }
-        //        }
-        //    }
-        //    else
-        //    {
-        //        for (int child = 1; child < s.ChildList.Count; child++)
-        //        {
-        //            int value = MiniMax(s.ChildList[child], depth_ - 1, AIUtils.IType.MAX);
-        //            if (value < score) { score = value; }
-        //        }
-        //    }
-        //    return score;
-        //}
+            int[] array = new int[1];
+            bitArray.CopyTo(array, 0);
+            return array[0];
+        }
+
+        public static long LongRandom(long min, long max, Random rand)
+        {
+            long result = rand.Next((Int32)(min >> 32), (Int32)(max >> 32));
+            result = (result << 32);
+            result = result | (long)rand.Next((Int32)min, (Int32)max);
+            return result;
+        }
     }
 }

@@ -29,9 +29,14 @@ namespace CannonModel
         public int TurnCounter { get; set; }
         public Cell[,] Grid { get; set; }
         public List<Move> LegalMoves { get; set; }
+        /// <summary>
+        /// List of moves from root to this state of the board
+        /// </summary>
+        public List<Move> History { get; set; }
 
         public BoardState ()
         {
+            History = new List<Move>();
             TurnCounter = 0;
             InitGrid();
             ResetStateBoard(); 
@@ -42,7 +47,7 @@ namespace CannonModel
         /// <summary>
         /// Reset AVAILABLE_MOVES and CURRENT_SOLDIER
         /// </summary>
-        private void ResetStateBoard()
+        public void ResetStateBoard()
         {
             LegalMoves = new List<Move>();
             // STEP, CAPTURE, SLIDE, RETREAT, ...
@@ -76,8 +81,39 @@ namespace CannonModel
                     Grid[move.OldCell.Row, move.OldCell.Column].Piece = CannonUtils.ISoldiers.empty;
                     break;
             }
+            History.Add(move);
             TurnCounter++;
             ResetStateBoard();
+        }
+
+
+        /// <summary>
+        /// To make children from current BoardState and change their properties without referencing its parent
+        /// </summary>
+        public BoardState DeepCopy()
+        {
+            BoardState other = (BoardState)this.MemberwiseClone();
+            // other.ChildrenList = new List<BoardState>(ChildrenList);
+            other.LegalMoves = new List<Move>(LegalMoves);
+            other.History = new List<Move>(History);
+            //foreach (Move item in History)
+            //{
+            //    other.History.Add(item.DeepCopy());
+            //}
+            //foreach (Move item in LegalMoves)
+            //{
+            //    other.LegalMoves.Add(item.DeepCopy());
+            //}
+            other.TurnCounter = TurnCounter;
+            other.Grid = new Cell[CannonUtils.Size, CannonUtils.Size];
+            for (int i = 0; i < CannonUtils.Size; i++)
+            {
+                for (int j = 0; j < CannonUtils.Size; j++)
+                {
+                    other.Grid[i, j] = Grid[i, j].DeepCopy();
+                }
+            }
+            return other;
         }
         #endregion
 
@@ -369,7 +405,7 @@ namespace CannonModel
                 && Grid[soldier.Row + 1, soldier.Column + 1].Piece == CannonUtils.ISoldiers.empty
                 && Grid[soldier.Row + 2, soldier.Column + 2].Piece == Friend
                 && Grid[soldier.Row + 3, soldier.Column + 3].Piece == Friend
-                && Grid[soldier.Row + 4, soldier.Column - 4].Piece == Friend)
+                && Grid[soldier.Row + 4, soldier.Column + 4].Piece == Friend)
             {
                 LegalMoves.Add(new Move(soldier.DeepCopy(), soldier.DeepCopy(), CannonUtils.IMoves.shootCannon));
             }
@@ -599,7 +635,7 @@ namespace CannonModel
         #endregion
 
         #region printMethods
-        public void printBoard(bool printAvailableMoves)
+        public void printBoard()
         {
             string[] columnChar = { "A", "B", "C", "D", "E", "F", "G", "H", "I", "J" };
             Console.WriteLine("================================= Counter:" + TurnCounter);
@@ -607,7 +643,7 @@ namespace CannonModel
             Console.Write("   ");
             for (int i = 0; i < columnChar.Length; i++) { Console.Write(columnChar[i]); Console.Write("   "); }
             Console.WriteLine();
-
+            int counter = 0;
             for (int i = 10 - 1; i >= 0; i--)
             {
                 Console.Write(i + 1);
@@ -616,26 +652,18 @@ namespace CannonModel
                 for (int j = 0; j < 10; j++)
                 {
                     Cell c = Grid[i, j];
-
-                    if (!printAvailableMoves)
+                    if (CannonUtils.IsOdd(TurnCounter)) 
                     {
+                        // Light soldiers turn (p2)
                         if (c.Piece == CannonUtils.ISoldiers.dark_soldier) { Console.Write("X"); }
-                        else if (c.Piece == CannonUtils.ISoldiers.light_soldier) { Console.Write("O"); }
+                        else if (c.Piece == CannonUtils.ISoldiers.light_soldier) { Console.Write(counter); counter++; }
                         else if (c.Piece == CannonUtils.ISoldiers.dark_town || c.Piece == CannonUtils.ISoldiers.light_town) { Console.Write("T"); }
                         else if (c.Piece == CannonUtils.ISoldiers.empty) { Console.Write("·"); }
+
                     }
                     else
                     {
-                        Move mov = LegalMoves.Where(x => x.NewCell.Row == i & x.NewCell.Column == j).FirstOrDefault();
-                        if (c == mov.OldCell) { Console.Write("S"); }
-                        else if (mov != null)
-                        {
-                            if (mov.Type == CannonUtils.IMoves.step) { Console.Write("m"); }
-                            else if (mov.Type == CannonUtils.IMoves.retreat) { Console.Write("r"); }
-                            else if (mov.Type == CannonUtils.IMoves.capture) { Console.Write("k"); }
-                            else if (mov.Type == CannonUtils.IMoves.slideCannon) { Console.Write("s"); }
-                        }
-                        else if (c.Piece == CannonUtils.ISoldiers.dark_soldier) { Console.Write("X"); }
+                        if (c.Piece == CannonUtils.ISoldiers.dark_soldier) { Console.Write(counter); counter++; }
                         else if (c.Piece == CannonUtils.ISoldiers.light_soldier) { Console.Write("O"); }
                         else if (c.Piece == CannonUtils.ISoldiers.dark_town || c.Piece == CannonUtils.ISoldiers.light_town) { Console.Write("T"); }
                         else if (c.Piece == CannonUtils.ISoldiers.empty) { Console.Write("·"); }
@@ -657,16 +685,85 @@ namespace CannonModel
             }
             Console.WriteLine();
             Console.WriteLine("Soldiers legend: X = Dark Soldier, O = Light Soldier, T = Town, · = empty cell");
-            if (printAvailableMoves) { Console.WriteLine("Available Moves legend: m = step, r = retreat, k = capture, s = slide"); }
             Console.WriteLine("=================================");
 
         }
 
-        public void printLegalMoves()
+        public void printBoardWithMoves(Cell chosen) 
+        {
+            string[] columnChar = { "A", "B", "C", "D", "E", "F", "G", "H", "I", "J" };
+            Console.WriteLine("================================= Counter:" + TurnCounter);
+            Console.WriteLine();
+            Console.Write("   ");
+            for (int i = 0; i < columnChar.Length; i++) { Console.Write(columnChar[i]); Console.Write("   "); }
+            Console.WriteLine();
+
+            List<Move> list = LegalMoves.Where(x => x.OldCell.Row == chosen.Row && x.OldCell.Column == chosen.Column).ToList();
+            for (int i = 10 - 1; i >= 0; i--)
+            {
+                Console.Write(i + 1);
+                Console.Write(" ");
+                if (i != 9) { Console.Write(" "); }
+                for (int j = 0; j < 10; j++)
+                {
+                    Cell c = Grid[i, j];
+                    Move mm = list.Where(x => x.NewCell.Row == c.Row && x.NewCell.Column == c.Column).FirstOrDefault();
+                    if (c == chosen) { Console.Write("S"); }
+                    else if (mm != null)
+                    {
+                        if (mm.Type == CannonUtils.IMoves.step) { Console.Write("m"); }
+                        else if (mm.Type == CannonUtils.IMoves.retreat) { Console.Write("r"); }
+                        else if (mm.Type == CannonUtils.IMoves.capture) { Console.Write("k"); }
+                        else if (mm.Type == CannonUtils.IMoves.slideCannon) { Console.Write("s"); }
+                    }
+                    else if (c.Piece == CannonUtils.ISoldiers.dark_soldier) { Console.Write("X"); }
+                    else if (c.Piece == CannonUtils.ISoldiers.light_soldier) { Console.Write("O"); }
+                    else if (c.Piece == CannonUtils.ISoldiers.dark_town || c.Piece == CannonUtils.ISoldiers.light_town) { Console.Write("T"); }
+                    else if (c.Piece == CannonUtils.ISoldiers.empty) { Console.Write("·"); }
+                    if (j != 9) { Console.Write(" - "); }
+
+                }
+                Console.WriteLine();
+                if (i != 0)
+                {
+                    Console.Write(" ");
+                    for (int j = 0; j < 10; j++)
+                    {
+                        Console.Write("  ");
+                        Console.Write("| ");
+                    }
+                    Console.WriteLine();
+                }
+            }
+            Console.WriteLine();
+            Console.WriteLine("Soldiers legend: X = Dark Soldier, O = Light Soldier, T = Town, · = empty cell");
+            Console.WriteLine("Available Moves legend: m = step, r = retreat, k = capture, s = slide");
+            Console.WriteLine("=================================");
+
+        }
+
+        public void printSoldiers()
+        {
+            Console.WriteLine("List of soldiers: ");
+            int count = 0;
+            foreach (Cell s in Grid)
+            {
+                if (s.Piece == CannonUtils.ISoldiers.dark_soldier ||
+                    s.Piece == CannonUtils.ISoldiers.light_soldier ||
+                    s.Piece == CannonUtils.ISoldiers.dark_town ||
+                    s.Piece == CannonUtils.ISoldiers.light_town)
+                {
+                    Console.WriteLine(count+ " - Soldier at: (" + s.Row + "," + s.Column+ ")");
+                    count++;
+                }
+            }
+        }
+
+        public void printLegalMoves(List<Move> moves)
         {
             int count = 0;
             Console.WriteLine("List of legal moves: ");
-            foreach (Move move in LegalMoves)
+            foreach (Move move in moves)
             {
                 printMove(move, count);
                 count++;
