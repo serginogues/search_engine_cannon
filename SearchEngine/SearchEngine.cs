@@ -21,13 +21,15 @@ namespace SearchEngine
         /// <summary>
         /// Transposition table
         /// </summary>
-        TranspositionTable myTT { get; set; }
-        public int Prunnings { get; set; }
+        public TranspositionTable myTT { get; set; }
+        public int prunnings { get; set; }
+        public int type1e { get; set; }
 
         public SearchEngine(Node root) 
         {
             myTT = new TranspositionTable(root);
-            Prunnings = 0;
+            prunnings = 0;
+            type1e = 0;
         }
 
         /// <summary>
@@ -40,99 +42,90 @@ namespace SearchEngine
             int olda = alpha;
 
             // Transposition-table lookup
-            Entry n = myTT.Retrieve(s);
+            Entry n = myTT.TableLookup(s);
 
             if (n.Depth >= depth)
             {
-                // TTEntry is deeper than current depth -> more interesting
-                if (n.Flag == AIUtils.ITTEntryFlag.exact_value)  { return n.Value;  }
-                else if (n.Flag == AIUtils.ITTEntryFlag.lower_bound) { alpha = n.Value > alpha ? n.Value : alpha; }
-                else if (n.Flag == AIUtils.ITTEntryFlag.upper_bound) { beta = n.Value < beta ? n.Value : beta; }
-                if (alpha >= beta) { return n.Value; }
-            }
+                // [n] is deeper than current depth or the same (means it is more interesting than current depth)
 
-            // leaf node?
-            if (depth == 0 || s.TerminalState()) 
-            {
-                return n.Depth == -1 ? s.Evaluate() : n.Value;
-            }
-
-            // if position is not found, depth will be -1
-            if (n.Depth != -1)
-            {
-                // entry found
-                int bestValue = n.Value;
-                int bestMove = n.BestMove;
-                List<int> indexes = new List<int>();
-                foreach (int child in n.ChildList)
+                if (n.Flag == AIUtils.ITTEntryFlag.exact_value)  { return n.Score;  }
+                else if (n.Flag == AIUtils.ITTEntryFlag.lower_bound) { alpha = n.Score > alpha ? n.Score : alpha; }
+                else if (n.Flag == AIUtils.ITTEntryFlag.upper_bound) { beta = n.Score < beta ? n.Score : beta; }
+                if (alpha >= beta) 
                 {
-                    int result = -AlphaBetaWithTT(s.Successor(child), -beta, -alpha, depth - 1);
-                    indexes.Add(result);
-                    if (result > bestValue)
-                    {
-                        bestValue = result;
-                        bestMove = child;
-                    }
-                    if (bestValue > alpha) { alpha = bestValue; }
-                    if (bestValue >= beta) 
-                    {
-                        Prunnings++;
-                        break;
-                    }
+                    prunnings++;
+                    return n.Score; 
+                }                
+            }
+
+            // Check if terminal node
+            if (depth == 0 || s.TerminalState()) { return s.Evaluate(); }
+
+            // We could not cut-off so we need to investigate deeper
+
+            int bestValue = -100000000;
+            int bestMove = 0;
+            List<int> child_list = Enumerable.Range(0, s.State.LegalMoves.Count).ToList();
+
+            if (n.Depth >= depth)
+            {
+                // if the TT does not give a cutoff, we play the best move as first
+                //bestValue = n.Score;
+                bestMove = n.BestMove;
+
+                // Do move ordering with child list
+                try
+                {
+                    child_list.RemoveAt(bestMove);
+                    child_list.Insert(0, bestMove);
                 }
-                indexes = indexes.Select((x, i) => new KeyValuePair<int, int>(x, i)).OrderByDescending(x => x.Key).ToList().Select(x => x.Value).ToList();
+                catch (Exception)
+                {
+                    // Type-1 error 
+                    // ignore it
+                    type1e++;
+                }
+                
+            }
 
-                // Traditional transposition table storing of bounds
-                AIUtils.ITTEntryFlag flag = AIUtils.ITTEntryFlag.exact_value;
+            // if position is not found, n.depth will be -1
 
-                // Fail-low result implies an upper bound
-                if (bestValue <= olda) { flag = AIUtils.ITTEntryFlag.upper_bound; }
-                // Fail-high result implies a lower bound
-                else if (bestValue >= beta) { flag = AIUtils.ITTEntryFlag.lower_bound; }
+            // Regular alpha-beta search algorithm
+            foreach (int child in child_list)
+            {
+                int result = -AlphaBetaWithTT(s.Successor(child), -beta, -alpha, depth - 1);
+                if (result > bestValue)
+                {
+                    bestValue = result;
+                    bestMove = child;
+                }
+                if (bestValue > alpha) { alpha = bestValue; }
+                if (bestValue >= beta)
+                {
+                    prunnings++;
+                    break;
+                }
+            }
 
+            // Traditional transposition table storing of bounds
+            AIUtils.ITTEntryFlag flag = AIUtils.ITTEntryFlag.exact_value;
+            // Fail-low result implies an upper bound
+            if (bestValue <= olda) { flag = AIUtils.ITTEntryFlag.upper_bound; }
+            // Fail-high result implies a lower bound
+            else if (bestValue >= beta) { flag = AIUtils.ITTEntryFlag.lower_bound; }
+
+            if (n.Depth == -1)
+            {
                 // store information in the TT
-                myTT.Update(bestMove, bestValue, flag, depth, n.EntryKey, indexes);
-
-                return bestValue;
-
+                myTT.Store(s, bestMove, bestValue, flag, depth);
             }
-            else
+            else if (n.Depth >= depth)
             {
-                // entry not found
-                int bestValue = -100000000;
-                int bestMove = 0;
-                List<int> indexes = new List<int>();
-                for (int child = 0; child < s.State.LegalMoves.Count; child++)
-                {
-                    int result = -AlphaBetaWithTT(s.Successor(child), -beta, -alpha, depth - 1);
-                    indexes.Add(result);
-                    if (result > bestValue)
-                    {
-                        bestValue = result;
-                        bestMove = child;
-                    }
-                    if (bestValue > alpha) { alpha = bestValue; }
-                    if (bestValue >= beta) 
-                    {
-                        Prunnings++;
-                        break; 
-                    }
-                }
-                indexes = indexes.Select((x, i) => new KeyValuePair<int, int>(x, i)).OrderByDescending(x => x.Key).ToList().Select(x => x.Value).ToList();
+                // If current state has already been stored in TT but it was less deep than current evaluation, update bestMove
+                myTT.Update(bestMove, bestValue, flag, depth, n.zobristHashKey);
+            }
 
-                // Traditional transposition table storing of bounds
-                AIUtils.ITTEntryFlag flag = AIUtils.ITTEntryFlag.exact_value;
-
-                // Fail-low result implies an upper bound
-                if (bestValue <= olda) { flag = AIUtils.ITTEntryFlag.upper_bound; }
-                // Fail-high result implies a lower bound
-                else if (bestValue >= beta) { flag = AIUtils.ITTEntryFlag.lower_bound; }
-
-                long key = myTT.Store(s, bestMove, bestValue, flag, depth, indexes);
-                //Tree.Add(new NodeKeyPair() { Key = key, node = s });
-
-                return bestValue;
-            }            
+            return bestValue;           
         }
 
         public int AlphaBeta(Node s, int alpha, int beta, int depth)

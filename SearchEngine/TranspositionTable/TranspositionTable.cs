@@ -7,75 +7,131 @@ using System.Collections;
 
 namespace SearchEngine
 {
+    /// <summary>
+    /// http://mediocrechess.blogspot.com/2007/01/guide-transposition-tables.html
+    /// https://stackoverflow.com/questions/20009796/transposition-tables
+    /// https://adamberent.com/2019/03/02/transposition-table-and-zobrist-hashing/
+    /// </summary>
     public class TranspositionTable
     {
-        public List<Entry> TT { get; set; }
-        private static long[,] Table { get; set; }
+        /// <summary>
+        /// 20 bit per entry.key
+        /// </summary>
+        public Entry[] TT { get; set; }
+        
+        public SoldierToUlong Table { get; set; }
 
-        public long RootKey { get; set; }
+        public ulong rootZobristHash { get; set; }
 
         public TranspositionTable(Node root)
         {
-            TT = new List<Entry>(); 
-            init_Zobrist();
-            RootKey = Hash(root);
+            TT = new Entry[ushort.MaxValue];
+            Table = new SoldierToUlong();
+            rootZobristHash = zobristHash(root);
         }
 
         /// <summary>
-        /// [m] different types of pieces in total (Go m=1+1=2)(Chess m=6+6=12)(Cannon m=2+2=4 if town is considered) 
-        /// [n] squares (Go n=19x19=361)(Chess n=8x8=64)(Cannon n=10x10=100)
-        /// [mxn] random numbers needed
+        /// [zobrist key]%[total size of the hashtable]
         /// </summary>
-        private void init_Zobrist()
+        public int hashFunction(ulong zobristHashKey)
         {
-            // fill a table of random numbers/bitstrings
-            int n_squares = 100;
-            int m_pieces = 4;
-            Table = new long[n_squares, m_pieces];
-            Random rnd = new Random();
-            for (int i = 0; i < n_squares; i++)
+            int value = (int)zobristHashKey % TT.Length;
+            if (value < 0)
             {
-                for (int j = 0; j < m_pieces; j++)
+                return -value;
+            }
+            return value;
+        }
+
+        /// <summary>
+        /// Table Lookup
+        /// For a given position, compute the zobrist key, and then a hash of the zobrist key, which will be your index in your transposition table.
+        /// You don't want to store 2^32 or 2^64 entries, so you take a "hash" of the Zobrist key to limit entries of the transposition table.
+        /// (i.e. 16 bits for 2^16 game positions (in reality it's probably >=2^20)). 
+        /// To obtain this hash, a simple method is to "modulo" the zobrist key, or do a "binary and" : transposition table index = zobrist_key & 0xFFFF
+        /// If position is not found, depth will be -1
+        /// </summary>
+        public Entry TableLookup(Node s)
+        {
+            // compute the zobrist key for the given game position
+            ulong zobristHashKey = zobristHashWithOperations(s);
+
+            // 16-bit transposition table index
+            int entry_key = hashFunction(zobristHashKey);
+            Entry n = TT.ElementAtOrDefault(entry_key);
+
+            if (n == null) { return new Entry(0) { Depth = -1 }; }
+            else if (n.zobristHashKey == zobristHashKey) 
+            {
+                n.Ancient = false;
+                return n; 
+            }
+            else
+            {
+                // collision
+                return new Entry(0) { Depth = -1 };
+            }
+        }
+
+        public void Store(Node s, int bestMove, int bestValue, AIUtils.ITTEntryFlag flag, int depth)
+        {
+            // For a given position, compute the zobrist key, and then a hash of the zobrist key, which will be your index in your transposition table.
+            ulong zobristHashKey = zobristHashWithOperations(s);
+            int entry_key = hashFunction(zobristHashKey);
+            Entry n = TT.ElementAtOrDefault(entry_key);
+
+            // Type-2 error Replacing Scheme: Always replace (if not ancient)
+            if (n != null) { ReplaceIfNotAncient(n, entry_key, zobristHashKey, bestMove, bestValue, flag, depth); }
+            else
+            {
+                TT[entry_key] = new Entry(zobristHashKey)
                 {
-                    Table[i, j] = random64Bit(rnd);
-                }
+                    BestMove = bestMove,
+                    Depth = depth,
+                    Flag = flag,
+                    Score = bestValue
+                };
             }
+            
         }
 
-        public static long random64Bit(Random rand)
+        private void ReplaceIfNotAncient(Entry n, int entry_key, ulong zobristHashKey, int bestMove, int bestValue, AIUtils.ITTEntryFlag flag, int depth)
         {
-            long num = -1000000000000000000L;
-            while (num < 0)
+            if (n.Ancient)
             {
-                num = (long)(rand.Next(1, 100000) * 1000000000000000000L);
+                TT[entry_key] = new Entry(zobristHashKey)
+                {
+                    BestMove = bestMove,
+                    Depth = depth,
+                    Flag = flag,
+                    Score = bestValue
+                };
             }
-            return num;
         }
 
-        private long SoldierToBitArray(int board_row, int board_column, CannonUtils.ISoldiers type)
+        public void Update(int bestMove, int bestValue, AIUtils.ITTEntryFlag flag, int depth, ulong zobristHashKey)
         {
-            int dim2 = board_row * 10 + board_column;
-            int dim1 = (int)type - 1;
-            return Table[dim2, dim1];
+            int entry_key = hashFunction(zobristHashKey);
+            Entry e = TT[entry_key];
+            e.BestMove = bestMove;
+            e.Score = bestValue;
+            e.Flag = flag;
+            e.Depth = depth;
         }
 
-        /// a = RandomNumbersMatrix [1][15]
-        /// b = RandomNumbersMatrix [0][58]
-        /// c = RandomNumbersMatrix [0][42]
-        ///    0 1 2 3 4 5 6 7 8 9
-        /// 90 · · · · · · · · · ·
-        /// 80 · · · · · · · · · ·
-        /// 70 · · · · · · · · · ·
-        /// 60 · · · · · · · · · ·
-        /// 50 · · · · · · · · b ·
-        /// 40 · · c · · · · · · ·
-        /// 30 · · · · · · · · · ·
-        /// 20 · · · · · · · · · ·
-        /// 10 · · · · · a · · · ·
-        /// 00 · · · · · · · · · ·
-        public long Hash(Node s)
+        public void ResetAllAncientFlags()
         {
-            long key = 0;
+            foreach (Entry item in TT.Where(x => x != null))
+            {
+                item.Ancient = true;
+            }
+        }
+
+        #region Zobrist Hash
+
+        public ulong zobristHash(Node s)
+        {
+            ulong key = 0;
             foreach (Cell soldier in s.State.Grid)
             {
                 if (soldier.Piece == CannonUtils.ISoldiers.dark_soldier ||
@@ -83,54 +139,18 @@ namespace SearchEngine
                     soldier.Piece == CannonUtils.ISoldiers.dark_town ||
                     soldier.Piece == CannonUtils.ISoldiers.light_town)
                 {
-                    key = key ^ SoldierToBitArray(soldier.Row, soldier.Column, soldier.Piece);
+                    key = key ^ Table.SoldierToBitArray(soldier.Row, soldier.Column, soldier.Piece);
                 }
             }
+            // Return 20 first bits
+            // byte[] bits64 = BitConverter.GetBytes(key);
+            // byte[] bits20 = bits64.Take(3).ToArray();
             return key;
         }
 
-        /// <summary>
-        /// if position is not found, depth will be -1
-        /// </summary>
-        public Entry Retrieve(Node state)
+        public ulong zobristHashWithOperations(Node state)
         {
-            // generate hash key from state 
-            long key = HashByOperation(state);
-            return TT.Exists(x => x.EntryKey == key) ? TT.Where(x => x.EntryKey == key).FirstOrDefault() : new Entry(random64Bit(new Random())) { Depth = -1 };
-        }
-
-        public long Store(Node s, int bestMove, int bestValue, AIUtils.ITTEntryFlag flag, int depth, List<int> list)
-        {
-            // generate key from old and new cell values
-            long key = Hash(s);
-            if (TT.Exists(x => x.EntryKey == key))
-            {
-                Console.WriteLine("repeated key!");
-            }
-            TT.Add(new Entry(key)
-            {
-                BestMove = bestMove,
-                Depth = depth,
-                Flag = flag,
-                Value = bestValue,
-                ChildList = list
-            });
-            return key;
-        }
-
-        public void Update(int bestMove, int bestValue, AIUtils.ITTEntryFlag flag, int depth, long key, List<int> indexes)
-        {
-            Entry e = TT.Where(x => x.EntryKey == key).FirstOrDefault();
-            e.BestMove = bestMove;
-            e.Value = bestValue;
-            e.Flag = flag;
-            e.Depth = depth;
-            e.ChildList = indexes;
-        }
-
-        public long HashByOperation(Node state)
-        {
-            long key = RootKey;
+            ulong key = rootZobristHash;
             foreach (Move move in state.State.History)
             {
                 switch (move.Type)
@@ -154,12 +174,12 @@ namespace SearchEngine
         /// <summary>
         /// Moving a piece
         /// </summary>
-        private long StepRetreatSlide(long key, Move state)
+        private ulong StepRetreatSlide(ulong key, Move state)
         {
             // remove old friend
-            long new_empty_cell = SoldierToBitArray(state.OldCell.Row, state.OldCell.Column, state.OldCell.Piece);
+            ulong new_empty_cell = Table.SoldierToBitArray(state.OldCell.Row, state.OldCell.Column, state.OldCell.Piece);
             // add new friend
-            long soldier_moves_to_here = SoldierToBitArray(state.NewCell.Row, state.NewCell.Column, state.OldCell.Piece);
+            ulong soldier_moves_to_here = Table.SoldierToBitArray(state.NewCell.Row, state.NewCell.Column, state.OldCell.Piece);
             return key ^ new_empty_cell ^ soldier_moves_to_here;
         }
 
@@ -167,21 +187,22 @@ namespace SearchEngine
         /// key = key (^ r_old ^ r_new) ^
         /// three changes: one soldier pops out, one cell becomes empty and one cell gets a new soldier
         /// </summary>
-        private long Capture(long key, Move state)
+        private ulong Capture(ulong key, Move state)
         {
             // remove captured enemy
-            long soldier_captured = SoldierToBitArray(state.NewCell.Row, state.NewCell.Column, state.NewCell.Piece);
+            ulong soldier_captured = Table.SoldierToBitArray(state.NewCell.Row, state.NewCell.Column, state.NewCell.Piece);
             // remove old friend
-            long new_empty_cell = SoldierToBitArray(state.OldCell.Row, state.OldCell.Column, state.OldCell.Piece);
+            ulong new_empty_cell = Table.SoldierToBitArray(state.OldCell.Row, state.OldCell.Column, state.OldCell.Piece);
             // add new friend
-            long soldier_moves_to_here = SoldierToBitArray(state.NewCell.Row, state.NewCell.Column, state.OldCell.Piece);
+            ulong soldier_moves_to_here = Table.SoldierToBitArray(state.NewCell.Row, state.NewCell.Column, state.OldCell.Piece);
             return key ^ soldier_captured ^ new_empty_cell ^ soldier_moves_to_here;
         }
 
-        private long Shoot(long key, Move state)
+        private ulong Shoot(ulong key, Move state)
         {
             // remove captured enemy
-            return key ^ SoldierToBitArray(state.NewCell.Row, state.NewCell.Column, state.NewCell.Piece);
+            return key ^ Table.SoldierToBitArray(state.NewCell.Row, state.NewCell.Column, state.NewCell.Piece);
         }
+        #endregion
     }
 }

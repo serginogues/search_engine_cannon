@@ -32,12 +32,25 @@ namespace SearchEngine
             return array[0];
         }
 
-        public static long LongRandom(long min, long max, Random rand)
+        public static long random64Bit(Random rand)
         {
-            long result = rand.Next((Int32)(min >> 32), (Int32)(max >> 32));
-            result = (result << 32);
-            result = result | (long)rand.Next((Int32)min, (Int32)max);
-            return result;
+            long num = -1000000000000000000L;
+            while (num < 0)
+            {
+                num = (long)(rand.Next(1, 100000) * 1000000000000000000L);
+            }
+            return num;
+        }
+
+        public static void CheckTwoStates(Node current_s, Entry retrieved)
+        {
+            //current_s.State.printBoard();
+            //Node nnn = SearchEngine.tree.Where(x => x.key == retrieved.zobristHashKey).FirstOrDefault().node;
+            //nnn.State.printBoard();
+            //Console.WriteLine(retrieved.zobristHashKey);
+            ////s.State.printLegalMoves(s.State.LegalMoves);
+            ////nnn.State.printLegalMoves(nnn.State.LegalMoves);
+            //Console.ReadLine();
         }
     }
 }
