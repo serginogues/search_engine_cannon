@@ -50,16 +50,11 @@ namespace CannonModel
         public void ResetStateBoard()
         {
             LegalMoves = new List<Move>();
-            // STEP, CAPTURE, SLIDE, RETREAT, ...
-            // For each cell
             foreach (Cell soldier in Grid)
             {
-                // Every soldier gives legal moves
                 if (soldier.Piece == Friend) 
                 {
-                    SetSTEPMoves(soldier);
-                    SetRETREATMoves(soldier);
-                    SetCAPTUREMoves(soldier);
+                    SetSTEP_CAPTURE_RETREATMoves(soldier);
                     SetCANNONMoves(soldier);
                 }
                 if (soldier.Piece == Enemy || soldier.Piece == TownEnemy) { SetSHOOTS(soldier); }
@@ -93,17 +88,8 @@ namespace CannonModel
         public BoardState DeepCopy()
         {
             BoardState other = (BoardState)this.MemberwiseClone();
-            // other.ChildrenList = new List<BoardState>(ChildrenList);
             other.LegalMoves = new List<Move>(LegalMoves);
             other.History = new List<Move>(History);
-            //foreach (Move item in History)
-            //{
-            //    other.History.Add(item.DeepCopy());
-            //}
-            //foreach (Move item in LegalMoves)
-            //{
-            //    other.LegalMoves.Add(item.DeepCopy());
-            //}
             other.TurnCounter = TurnCounter;
             other.Grid = new Cell[CannonUtils.Size, CannonUtils.Size];
             for (int i = 0; i < CannonUtils.Size; i++)
@@ -128,26 +114,159 @@ namespace CannonModel
         }
 
         /// <summary>
-        /// A soldier may move one step forward or diagonally forward to an adjacent empty point
+        /// A soldier may move one STEP forward or diagonally forward to an adjacent empty point.
+        /// A soldier may CAPTURE an enemy piece (a soldier or the Town) standing on an adjacent point 
+        /// by moving one step sideways, forward or diagonally forward
         /// </summary>
-        private void SetSTEPMoves(Cell soldier)
+        private void SetSTEP_CAPTURE_RETREATMoves(Cell soldier)
         {
+            bool retreat = false;
             if (soldier.Piece == CannonUtils.ISoldiers.dark_soldier)
             {
-                // i to i+1
-                foreach (Cell cell in GetNeighbours(soldier).Where(x => soldier.Row < x.Row && x.Piece == CannonUtils.ISoldiers.empty).ToList())
+                if(soldier.Row < 9)
                 {
-                    LegalMoves.Add(new Move(soldier.DeepCopy(), cell.DeepCopy(), CannonUtils.IMoves.step));
+                    // (i+1, j)
+                    // capture or step
+                    Cell c = Grid[soldier.Row + 1, soldier.Column];
+                    retreat = StepCaptureRetreat(soldier, c);
+
+                    // (i+1, j-1)
+                    if (soldier.Column > 0)
+                    {
+                        c = Grid[soldier.Row + 1, soldier.Column - 1];
+                        retreat = StepCaptureRetreat(soldier, c);
+                    }
+
+                    // (i+1, j+1)
+                    if (soldier.Column < 9)
+                    {
+                        c = Grid[soldier.Row + 1, soldier.Column + 1];
+                        retreat = StepCaptureRetreat(soldier, c);
+                    }
                 }
-            }
+                // (i, j-1)
+                if (soldier.Column > 0)
+                {
+                    Cell c = Grid[soldier.Row, soldier.Column - 1];
+                    retreat = StepCaptureRetreat(soldier, c);
+                }
+
+                // (i, j+1)
+                if (soldier.Column < 9)
+                {
+                    Cell c = Grid[soldier.Row, soldier.Column + 1];
+                    retreat = StepCaptureRetreat(soldier, c);
+                }
+
+                // check if enemy in back row
+                
+                
+                // (i-1, j+1)
+                if (soldier.Row > 1)
+                {
+                    // (i-1, j)
+                    if (Grid[soldier.Row - 1, soldier.Column].Piece == Enemy)
+                    {
+                        retreat = true;
+                    }
+                    // (i-1, j-1)
+                    else if (soldier.Column > 0 && Grid[soldier.Row - 1, soldier.Column - 1].Piece == Enemy)
+                    {
+                        retreat = true;
+                    }
+                    else if (soldier.Column < 9 && Grid[soldier.Row - 1, soldier.Column + 1].Piece == Enemy)
+                    {
+                        retreat = true;
+                    }
+                }
+            }            
             else
             {
-                // i to i-1
-                foreach (Cell cell in GetNeighbours(soldier).Where(x => soldier.Row > x.Row && x.Piece == CannonUtils.ISoldiers.empty).ToList())
+                if (soldier.Row > 0)
                 {
-                    LegalMoves.Add(new Move(soldier.DeepCopy(), cell.DeepCopy(), CannonUtils.IMoves.step));
+                    // (i-1, j)
+                    // capture or step
+                    Cell c = Grid[soldier.Row - 1, soldier.Column];
+                    retreat = StepCaptureRetreat(soldier, c);
+
+                    // (i-1, j-1)
+                    if (soldier.Column > 0)
+                    {
+                        c = Grid[soldier.Row - 1, soldier.Column - 1];
+                        retreat = StepCaptureRetreat(soldier, c);
+                    }
+
+                    // (i-1, j+1)
+                    if (soldier.Column < 9)
+                    {
+                        c = Grid[soldier.Row - 1, soldier.Column + 1];
+                        retreat = StepCaptureRetreat(soldier, c);
+                    }
+                }
+                // (i, j-1)
+                if (soldier.Column > 0)
+                {
+                    Cell c = Grid[soldier.Row, soldier.Column - 1];
+                    retreat = StepCaptureRetreat(soldier, c);
+                }
+
+                // (i, j+1)
+                if (soldier.Column < 9)
+                {
+                    Cell c = Grid[soldier.Row, soldier.Column + 1];
+                    retreat = StepCaptureRetreat(soldier, c);
+                }
+
+                // check if enemy in back row
+                if (soldier.Row < 8)
+                {
+                    // (i+1, j)
+                    if (Grid[soldier.Row + 1, soldier.Column].Piece == Enemy)
+                    {
+                        retreat = true;
+                    }
+                    // (i+1, j-1)
+                    else if (soldier.Column > 0 && Grid[soldier.Row + 1, soldier.Column - 1].Piece == Enemy)
+                    {
+                        retreat = true;
+                    }
+                    // (i+1, j+1)
+                    else if (soldier.Column < 9 && Grid[soldier.Row + 1, soldier.Column + 1].Piece == Enemy)
+                    {
+                        retreat = true;
+                    }
                 }
             }
+
+            if (retreat) { SetRETREATMoves(soldier); }
+        }
+
+        /// <summary>
+        /// return true if c is enemy
+        /// </summary>
+        private bool StepCaptureRetreat(Cell soldier, Cell c)
+        {
+            bool retreat = false;
+            if (c.Piece == CannonUtils.ISoldiers.empty)
+            {
+                // step
+                LegalMoves.Add(new Move(soldier.DeepCopy(),
+                                        c.DeepCopy(),
+                                        CannonUtils.IMoves.step));
+            }
+            else if (c.Piece == Enemy || c.Piece == TownEnemy)
+            {
+                // capture or retreat
+                if ((soldier.Piece == CannonUtils.ISoldiers.dark_soldier && soldier.Row > 1) ||
+                    soldier.Piece == CannonUtils.ISoldiers.light_soldier && soldier.Row < 8)
+                {
+                    retreat = true;
+                }
+                LegalMoves.Add(new Move(soldier.DeepCopy(),
+                                        c.DeepCopy(),
+                                        CannonUtils.IMoves.capture));
+            }
+            return retreat;
         }
 
         /// <summary>
@@ -156,98 +275,79 @@ namespace CannonModel
         /// </summary>
         private void SetRETREATMoves(Cell soldier)
         {
-            if (IsEnemyNeighbour(soldier))
-            {
-                bool canRetreatLeft = soldier.Column > 1 ? true : false;
-                bool canRetreatRight = soldier.Column < 8 ? true : false;
-                if (soldier.Piece == CannonUtils.ISoldiers.dark_soldier && soldier.Row > 1)
-                {
-                    // i to i-1
-                    // retreat backward
-                    if (Grid[soldier.Row - 1, soldier.Column].Piece == CannonUtils.ISoldiers.empty &&
-                        Grid[soldier.Row - 2, soldier.Column].Piece == CannonUtils.ISoldiers.empty)
-                    {
-                        LegalMoves.Add(new Move(soldier.DeepCopy(), 
-                                                Grid[soldier.Row - 2, soldier.Column].DeepCopy(), 
-                                                CannonUtils.IMoves.retreat));
-                    }
-                    
-                    // retreat left diagonal
-                    if (canRetreatLeft &&
-                        Grid[soldier.Row - 1, soldier.Column-1].Piece == CannonUtils.ISoldiers.empty &&
-                        Grid[soldier.Row - 2, soldier.Column-2].Piece == CannonUtils.ISoldiers.empty)
-                    {
-                        LegalMoves.Add(new Move(soldier.DeepCopy(), 
-                                        Grid[soldier.Row - 2, soldier.Column - 2].DeepCopy(),
-                                        CannonUtils.IMoves.retreat));
-                    }
-
-                    // retreat right diagonal
-                    if (canRetreatRight &&
-                        Grid[soldier.Row - 1, soldier.Column + 1].Piece == CannonUtils.ISoldiers.empty &&
-                        Grid[soldier.Row - 2, soldier.Column + 2].Piece == CannonUtils.ISoldiers.empty)
-                    {
-                        LegalMoves.Add(new Move(soldier.DeepCopy(), 
-                                        Grid[soldier.Row - 2, soldier.Column + 2].DeepCopy(),
-                                        CannonUtils.IMoves.retreat));
-                    }
-
-                }
-                else if (soldier.Piece == CannonUtils.ISoldiers.light_soldier && soldier.Row < 8)
-                {
-                    // i to i+1
-                    // retreat backward
-                    if (Grid[soldier.Row + 1, soldier.Column].Piece == CannonUtils.ISoldiers.empty &&
-                        Grid[soldier.Row + 2, soldier.Column].Piece == CannonUtils.ISoldiers.empty)
-                    {
-                        LegalMoves.Add(new Move(soldier.DeepCopy(), 
-                                        Grid[soldier.Row + 2, soldier.Column].DeepCopy(),
-                                        CannonUtils.IMoves.retreat));
-                    }
-
-                    // retreat left diagonal
-                    if (canRetreatLeft &&
-                        Grid[soldier.Row + 1, soldier.Column - 1].Piece == CannonUtils.ISoldiers.empty &&
-                        Grid[soldier.Row + 2, soldier.Column - 2].Piece == CannonUtils.ISoldiers.empty)
-                    {
-                        LegalMoves.Add(new Move(soldier.DeepCopy(), 
-                                        Grid[soldier.Row + 2, soldier.Column - 2].DeepCopy(),
-                                        CannonUtils.IMoves.retreat));
-                    }
-
-                    // retreat right diagonal
-                    if (canRetreatRight &&
-                        Grid[soldier.Row + 1, soldier.Column + 1].Piece == CannonUtils.ISoldiers.empty &&
-                        Grid[soldier.Row + 2, soldier.Column + 2].Piece == CannonUtils.ISoldiers.empty)
-                    {
-                        LegalMoves.Add(new Move(soldier.DeepCopy(), 
-                                        Grid[soldier.Row + 2, soldier.Column + 2].DeepCopy(),
-                                        CannonUtils.IMoves.retreat));
-                    }
-
-                }
-            }
-        }
-
-        /// <summary>
-        /// A soldier may capture an enemy piece (a soldier or the Town) standing on an adjacent point 
-        /// by moving one step sideways, forward or diagonally forward
-        /// </summary>
-        private void SetCAPTUREMoves(Cell soldier)
-        {
+            bool canRetreatLeft = soldier.Column > 1 ? true : false;
+            bool canRetreatRight = soldier.Column < 8 ? true : false;
             if (soldier.Piece == CannonUtils.ISoldiers.dark_soldier)
             {
-                foreach (Cell item in GetNeighbours(soldier).Where(x => IsEnemy(soldier, x) && soldier.Row <= x.Row).ToList())
+                // i to i-1
+                // retreat backward
+                Cell c = Grid[soldier.Row - 2, soldier.Column];
+                if (Grid[soldier.Row - 1, soldier.Column].Piece == CannonUtils.ISoldiers.empty &&
+                    c.Piece == CannonUtils.ISoldiers.empty)
                 {
-                    LegalMoves.Add(new Move(soldier.DeepCopy(), item.DeepCopy(), CannonUtils.IMoves.capture));
+                    LegalMoves.Add(new Move(soldier.DeepCopy(), 
+                                            c.DeepCopy(), 
+                                            CannonUtils.IMoves.retreat));
                 }
+
+                // retreat left diagonal
+                c = Grid[soldier.Row - 2, soldier.Column - 2];
+                if (canRetreatLeft &&
+                    Grid[soldier.Row - 1, soldier.Column-1].Piece == CannonUtils.ISoldiers.empty &&
+                    c.Piece == CannonUtils.ISoldiers.empty)
+                {
+                    LegalMoves.Add(new Move(soldier.DeepCopy(), 
+                                    c.DeepCopy(),
+                                    CannonUtils.IMoves.retreat));
+                }
+
+                // retreat right diagonal
+                c = Grid[soldier.Row - 2, soldier.Column + 2];
+                if (canRetreatRight &&
+                    Grid[soldier.Row - 1, soldier.Column + 1].Piece == CannonUtils.ISoldiers.empty &&
+                    c.Piece == CannonUtils.ISoldiers.empty)
+                {
+                    LegalMoves.Add(new Move(soldier.DeepCopy(), 
+                                    c.DeepCopy(),
+                                    CannonUtils.IMoves.retreat));
+                }
+
             }
             else if (soldier.Piece == CannonUtils.ISoldiers.light_soldier)
             {
-                foreach (Cell item in GetNeighbours(soldier).Where(x => IsEnemy(soldier, x) && soldier.Row >= x.Row).ToList())
+                // i to i+1
+                // retreat backward
+                Cell c = Grid[soldier.Row + 2, soldier.Column];
+                if (Grid[soldier.Row + 1, soldier.Column].Piece == CannonUtils.ISoldiers.empty &&
+                    c.Piece == CannonUtils.ISoldiers.empty)
                 {
-                    LegalMoves.Add(new Move(soldier.DeepCopy(), item.DeepCopy(), CannonUtils.IMoves.capture));
+                    LegalMoves.Add(new Move(soldier.DeepCopy(), 
+                                    c.DeepCopy(),
+                                    CannonUtils.IMoves.retreat));
                 }
+
+                // retreat left diagonal
+                c = Grid[soldier.Row + 2, soldier.Column - 2];
+                if (canRetreatLeft &&
+                    Grid[soldier.Row + 1, soldier.Column - 1].Piece == CannonUtils.ISoldiers.empty &&
+                    c.Piece == CannonUtils.ISoldiers.empty)
+                {
+                    LegalMoves.Add(new Move(soldier.DeepCopy(), 
+                                    c.DeepCopy(),
+                                    CannonUtils.IMoves.retreat));
+                }
+
+                // retreat right diagonal
+                c = Grid[soldier.Row + 2, soldier.Column + 2];
+                if (canRetreatRight &&
+                    Grid[soldier.Row + 1, soldier.Column + 1].Piece == CannonUtils.ISoldiers.empty &&
+                    c.Piece == CannonUtils.ISoldiers.empty)
+                {
+                    LegalMoves.Add(new Move(soldier.DeepCopy(), 
+                                    c.DeepCopy(),
+                                    CannonUtils.IMoves.retreat));
+                }
+
             }
         }
 
@@ -420,196 +520,12 @@ namespace CannonModel
                 LegalMoves.Add(new Move(soldier.DeepCopy(), soldier.DeepCopy(), CannonUtils.IMoves.shootCannon));
             }
         }
-
-        private void SetSHOOTSDeprecated()
-        {
-            // In order to find the cells that correspond to available shoots, we need first to check the available cannons (lines of 3 soldiers).
-
-            // Create a list of the soldier cells with which to work better
-            List<Cell> soldier_list = new List<Cell>();
-            bool is_odd = CannonUtils.IsOdd(TurnCounter);
-            foreach (Cell item in Grid)
-            {
-                // Even counter -> Dark Soldiers (Player 1)
-                // Odd counter ->  Light soldiers
-                if (!is_odd && item.Piece == CannonUtils.ISoldiers.dark_soldier) { soldier_list.Add(item); }
-                else if (is_odd && item.Piece == CannonUtils.ISoldiers.light_soldier) { soldier_list.Add(item); }
-            }
-
-            // For each permutation of 3 soldiers (without repetition), check if they are in line
-            foreach (var perm in CannonUtils.GetPermutations(soldier_list, 3))
-            {
-                // perm = list of 3 soldiers  
-                int row0 = perm.ElementAt(0).Row;
-                int row1 = perm.ElementAt(1).Row;
-                int row2 = perm.ElementAt(2).Row;
-                int col0 = perm.ElementAt(0).Column;
-                int col1 = perm.ElementAt(1).Column;
-                int col2 = perm.ElementAt(2).Column;
-
-                // check first orthogonal lines
-                // if the three row values are the same and the column values are a sequence, this is an horizontal cannon
-                if (row0 == row1 && row1 == row2 && col0 + 1 == col1 && col1 + 1 == col2)
-                {
-                    // if there is an empty cell at their left and an enemy two cells at their left, this is a shoot cell
-                    if (1 < col0 && Grid[row0, col0-1].Piece == CannonUtils.ISoldiers.empty && IsEnemy(perm.ElementAt(0), Grid[row0, col0 - 2]))
-                    {
-                        LegalMoves.Add(new Move(new Cell(row0, col0), Grid[row0, col0 - 2].DeepCopy(), CannonUtils.IMoves.shootCannon));
-                    }
-
-                    // if there is an empty cell at their right and an enemy two cells, this is a shoot cell
-                    if (col2 < 8 && Grid[row0, col2 + 1].Piece == CannonUtils.ISoldiers.empty && IsEnemy(perm.ElementAt(0), Grid[row0, col2 + 2]))
-                    {
-                        LegalMoves.Add(new Move(new Cell(row0, col0), Grid[row0, col2 + 2].DeepCopy(), CannonUtils.IMoves.shootCannon));
-                    }
-                }
-                // if the three column values are the same and the row values are a sequence, this is a vertical cannon
-                else if (col0 == col1 && col1 == col2 && row0 + 1 == row1 && row1 + 1 == row2)
-                {
-                    // if there is an empty cell at their left and an enemy two cells at their left, this is a shoot cell
-                    if (1 < row0 && Grid[row0 - 1, col0].Piece == CannonUtils.ISoldiers.empty && IsEnemy(perm.ElementAt(0), Grid[row0 - 2, col0]))
-                    {
-                        LegalMoves.Add(new Move(new Cell(row0, col0), Grid[row0 - 2, col0].DeepCopy(), CannonUtils.IMoves.shootCannon));
-                    }
-
-                    // if there is an empty cell at their right and an enemy two cells, this is a shoot cell
-                    if (row2 < 8 && Grid[row2 + 1, col2].Piece == CannonUtils.ISoldiers.empty && IsEnemy(perm.ElementAt(0), Grid[row2+ 2, col2]))
-                    {
-                        LegalMoves.Add(new Move(new Cell(row0, col0), Grid[row2 + 2, col2].DeepCopy(), CannonUtils.IMoves.shootCannon));
-                    }
-                }
-
-                // if both column and row values are a sequence, this is a diagonal cannon
-                // left - up -> right-down
-                else if (col0 + 1 == col1 && col1 + 1 == col2 && row0 == row1 + 1 && row1 == row2 + 1)
-                {
-                    // shoot upper left
-                    if (1 < col0 && row0 < 8 && Grid[row0 + 1, col0-1].Piece == CannonUtils.ISoldiers.empty && IsEnemy(perm.ElementAt(0), Grid[row0 + 2, col0 - 2]))
-                    {
-                        LegalMoves.Add(new Move(new Cell(row0, col0), Grid[row0 + 2, col0 - 2].DeepCopy(), CannonUtils.IMoves.shootCannon));
-                    }
-
-                    // shoot bellow right
-                    if (col2 < 8 && 1 < row2 && Grid[row2 - 1, col2 + 1].Piece == CannonUtils.ISoldiers.empty && IsEnemy(perm.ElementAt(0), Grid[row2 - 2, col2 + 2]))
-                    {
-                        LegalMoves.Add(new Move(new Cell(row0, col0), Grid[row2 - 2, col2 + 2].DeepCopy(), CannonUtils.IMoves.shootCannon));
-                    }
-                }
-                // left-down -> right-up
-                else if (col0 + 1 == col1 && col1 + 1 == col2 && row0 + 1 == row1 && row1 + 1 == row2)
-                {
-                    // shoot bellow left
-                    if (1 < col0 && 1 < row0 && Grid[row0 - 1, col0 - 1].Piece == CannonUtils.ISoldiers.empty && IsEnemy(perm.ElementAt(0), Grid[row0 - 2, col0 - 2]))
-                    {
-                        LegalMoves.Add(new Move(new Cell(row0, col0), Grid[row0 - 2, col0 - 2].DeepCopy(), CannonUtils.IMoves.shootCannon));
-                    }
-
-                    // shoot upper right
-                    if (col2 < 8 && row2 < 8 && Grid[row2 + 1, col2 + 1].Piece == CannonUtils.ISoldiers.empty && IsEnemy(perm.ElementAt(0), Grid[row2 + 2, col2 + 2]))
-                    {
-                        LegalMoves.Add(new Move(new Cell(row0, col0), Grid[row2 + 2, col2 + 2].DeepCopy(), CannonUtils.IMoves.shootCannon));
-                    }
-                }
-                
-            }
-
-        }
         #endregion
 
         #region Utils
-        /// <summary> True if enemy arround </summary>
-        private bool IsEnemyNeighbour(Cell _soldier) => GetNeighbours(_soldier).Any(x => IsEnemy(_soldier, x));
-
-        private bool IsEnemy(Cell _soldier, Cell possibleEnemy)
-        {
-            if (_soldier.Piece == CannonUtils.ISoldiers.dark_soldier &&
-                (possibleEnemy.Piece == CannonUtils.ISoldiers.light_soldier || possibleEnemy.Piece == CannonUtils.ISoldiers.light_town)) { return true; }
-            else if (_soldier.Piece == CannonUtils.ISoldiers.light_soldier &&
-                (possibleEnemy.Piece == CannonUtils.ISoldiers.dark_soldier || possibleEnemy.Piece == CannonUtils.ISoldiers.dark_town)) { return true; }
-            else { return false; }
-        }
-
         public CannonUtils.ISoldiers Friend => CannonUtils.IsOdd(TurnCounter) ? CannonUtils.ISoldiers.light_soldier : CannonUtils.ISoldiers.dark_soldier;
         public CannonUtils.ISoldiers Enemy => !CannonUtils.IsOdd(TurnCounter) ? CannonUtils.ISoldiers.light_soldier : CannonUtils.ISoldiers.dark_soldier;
         public CannonUtils.ISoldiers TownEnemy => !CannonUtils.IsOdd(TurnCounter) ? CannonUtils.ISoldiers.light_town : CannonUtils.ISoldiers.dark_town;
-
-        private List<Cell> GetNeighbours(Cell _soldier)
-        {
-            List<Cell> neighbours_list = new List<Cell>();
-
-            switch (CannonUtils.BoundsState(_soldier))
-            {
-                case CannonUtils.IBounds.middle:
-                    neighbours_list.Add(Grid[_soldier.Row + 1, _soldier.Column]);
-                    neighbours_list.Add(Grid[_soldier.Row + 1, _soldier.Column-1]);
-                    neighbours_list.Add(Grid[_soldier.Row + 1, _soldier.Column+1]);
-
-                    neighbours_list.Add(Grid[_soldier.Row - 1, _soldier.Column]);
-                    neighbours_list.Add(Grid[_soldier.Row - 1, _soldier.Column - 1]);
-                    neighbours_list.Add(Grid[_soldier.Row - 1, _soldier.Column + 1]);
-
-                    neighbours_list.Add(Grid[_soldier.Row, _soldier.Column - 1]);
-                    neighbours_list.Add(Grid[_soldier.Row, _soldier.Column + 1]);
-                    break;
-                case CannonUtils.IBounds.leftBound:
-                    neighbours_list.Add(Grid[_soldier.Row + 1, _soldier.Column]);
-                    neighbours_list.Add(Grid[_soldier.Row + 1, _soldier.Column + 1]);
-
-                    neighbours_list.Add(Grid[_soldier.Row - 1, _soldier.Column]);
-                    neighbours_list.Add(Grid[_soldier.Row - 1, _soldier.Column + 1]);
-
-                    neighbours_list.Add(Grid[_soldier.Row, _soldier.Column + 1]);
-                    break;
-                case CannonUtils.IBounds.rightBound:
-                    neighbours_list.Add(Grid[_soldier.Row + 1, _soldier.Column]);
-                    neighbours_list.Add(Grid[_soldier.Row + 1, _soldier.Column - 1]);
-
-                    neighbours_list.Add(Grid[_soldier.Row - 1, _soldier.Column]);
-                    neighbours_list.Add(Grid[_soldier.Row - 1, _soldier.Column - 1]);
-
-                    neighbours_list.Add(Grid[_soldier.Row, _soldier.Column - 1]);
-                    break;
-                case CannonUtils.IBounds.upperBound:
-                    neighbours_list.Add(Grid[_soldier.Row - 1, _soldier.Column]);
-                    neighbours_list.Add(Grid[_soldier.Row - 1, _soldier.Column - 1]);
-                    neighbours_list.Add(Grid[_soldier.Row - 1, _soldier.Column + 1]);
-
-                    neighbours_list.Add(Grid[_soldier.Row, _soldier.Column - 1]);
-                    neighbours_list.Add(Grid[_soldier.Row, _soldier.Column + 1]);
-                    break;
-                case CannonUtils.IBounds.lowerBound:
-                    neighbours_list.Add(Grid[_soldier.Row + 1, _soldier.Column]);
-                    neighbours_list.Add(Grid[_soldier.Row + 1, _soldier.Column - 1]);
-                    neighbours_list.Add(Grid[_soldier.Row + 1, _soldier.Column + 1]);
-
-                    neighbours_list.Add(Grid[_soldier.Row, _soldier.Column - 1]);
-                    neighbours_list.Add(Grid[_soldier.Row, _soldier.Column + 1]);
-                    break;
-                case CannonUtils.IBounds.LeftDownC:
-                    neighbours_list.Add(Grid[_soldier.Row + 1, _soldier.Column]);
-                    neighbours_list.Add(Grid[_soldier.Row + 1, _soldier.Column + 1]);
-                    neighbours_list.Add(Grid[_soldier.Row, _soldier.Column + 1]);
-                    break;
-                case CannonUtils.IBounds.LeftUpperC:
-                    neighbours_list.Add(Grid[_soldier.Row - 1, _soldier.Column]);
-                    neighbours_list.Add(Grid[_soldier.Row - 1, _soldier.Column + 1]);
-                    neighbours_list.Add(Grid[_soldier.Row, _soldier.Column + 1]);
-                    break;
-                case CannonUtils.IBounds.RightDownC:
-                    neighbours_list.Add(Grid[_soldier.Row + 1, _soldier.Column]);
-                    neighbours_list.Add(Grid[_soldier.Row + 1, _soldier.Column - 1]);
-                    neighbours_list.Add(Grid[_soldier.Row, _soldier.Column - 1]);
-                    break;
-                case CannonUtils.IBounds.RightUpperC:
-                    neighbours_list.Add(Grid[_soldier.Row - 1, _soldier.Column]);
-                    neighbours_list.Add(Grid[_soldier.Row - 1, _soldier.Column - 1]);
-                    neighbours_list.Add(Grid[_soldier.Row, _soldier.Column - 1]);
-                    break;
-            }
-
-            return neighbours_list;
-        }
-
 
         private void InitGrid()
         {
