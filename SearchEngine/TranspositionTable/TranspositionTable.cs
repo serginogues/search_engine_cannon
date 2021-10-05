@@ -58,7 +58,7 @@ namespace SearchEngine
 
             // 16-bit transposition table index
             int entry_key = hashFunction(zobristHashKey);
-            Entry n = TT.ElementAtOrDefault(entry_key);
+            var n = TT[entry_key];
 
             if (n == null) { return new Entry(0) { Depth = -1 }; }
             else if (n.zobristHashKey == zobristHashKey) 
@@ -78,7 +78,7 @@ namespace SearchEngine
             // For a given position, compute the zobrist key, and then a hash of the zobrist key, which will be your index in your transposition table.
             ulong zobristHashKey = zobristHashWithOperations(s);
             int entry_key = hashFunction(zobristHashKey);
-            Entry n = TT.ElementAtOrDefault(entry_key);
+            //var n = TT[entry_key];
 
             // always replace
             TT[entry_key] = new Entry(zobristHashKey)
@@ -90,17 +90,17 @@ namespace SearchEngine
             };
 
             // Type - 2 error Replacing Scheme: Always replace(if not ancient)
-            if (n != null) { ReplaceIfNotAncient(n, entry_key, zobristHashKey, bestMove, bestValue, flag, depth); }
-            else
-            {
-                TT[entry_key] = new Entry(zobristHashKey)
-                {
-                    BestMove = bestMove,
-                    Depth = depth,
-                    Flag = flag,
-                    Score = bestValue
-                };
-            }
+            //if (n != null) { ReplaceIfNotAncient(n, entry_key, zobristHashKey, bestMove, bestValue, flag, depth); }
+            //else
+            //{
+            //    TT[entry_key] = new Entry(zobristHashKey)
+            //    {
+            //        BestMove = bestMove,
+            //        Depth = depth,
+            //        Flag = flag,
+            //        Score = bestValue
+            //    };
+            //}
 
         }
 

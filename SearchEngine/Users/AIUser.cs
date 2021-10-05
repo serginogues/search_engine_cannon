@@ -34,7 +34,7 @@ namespace SearchEngine
             for (int d = 1; d <= Depth; d++)
             {
                 optimalValue = searchEngine.AlphaBetaWithTT(s, -1000000, 100000, d);
-                searchEngine.myTT.ResetAllAncientFlags();
+                //searchEngine.myTT.ResetAllAncientFlags();
 
                 var elapsed = stopWatch.ElapsedMilliseconds;
                 Console.WriteLine("Depth = " + d + 

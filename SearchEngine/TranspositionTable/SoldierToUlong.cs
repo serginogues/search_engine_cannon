@@ -46,7 +46,7 @@ namespace SearchEngine
                 for (int j = 0; j < m_pieces; j++)
                 {
                     //byte[] buff = Zobrist.Bytes8Random(random);
-                    table[i, j] = Zobrist.uLongRandom(random);
+                    table[i, j] = uLongRandom(random);
                 }
             }
         }
@@ -56,6 +56,15 @@ namespace SearchEngine
             int dim2 = board_row * 10 + board_column;
             int dim1 = (int)type - 1;
             return table[dim2, dim1];
+        }
+
+        static ulong uLongRandom(Random rand)
+        {
+            byte[] buf = new byte[8];
+            rand.NextBytes(buf);
+            ulong longRand = BitConverter.ToUInt64(buf, 0);
+
+            return longRand;
         }
     }
 }
