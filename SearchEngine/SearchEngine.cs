@@ -70,7 +70,7 @@ namespace SearchEngine
             if (n.Depth >= depth)
             {
                 // if the TT does not give a cutoff, we play the best move as first
-                //bestValue = n.Score;
+                bestValue = n.Score;
                 bestMove = n.BestMove;
 
                 // Do move ordering with child list

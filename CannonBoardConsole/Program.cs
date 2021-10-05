@@ -52,18 +52,15 @@ namespace CannonBoardConsole
             Node a = new Node(new BoardState());
             TranspositionTable TT = new TranspositionTable(a);
             //a.State.printBoard();
-            //Console.WriteLine("Long key a = "+TT.Hash(a));
-            //Console.WriteLine("Key a = " + Zobrist.long2doubleInt(TT.Hash(a))[0]);
-            //Node b = a.Successor(0);
-            ////b.State.printBoard();
-            //Console.WriteLine("Long key b                = " + TT.Hash(b));
-            //Console.WriteLine("Key b = " + Zobrist.long2doubleInt(TT.Hash(b))[0]);
-            //Console.WriteLine("Long key b by operation   = " + TT.HashByOperation(b));
-            //Console.WriteLine("Key b by operation = " + Zobrist.long2doubleInt(TT.HashByOperation(b))[0]);
-            //TT.Store(a, 0, 5, AIUtils.ITTEntryFlag.exact_value, 1);
-            //TT.Store(b, 0, 5, AIUtils.ITTEntryFlag.exact_value, 1);
-            //Entry n = TT.Retrieve(b);
-            //Console.WriteLine(n.EntryKey == (int)Zobrist.long2doubleInt(TT.Hash(b))[0]);
+            Console.WriteLine("Key a = " + TT.hashFunction(TT.zobristHashWithOperations(a)));
+            Node b = a.Successor(0);
+            //b.State.printBoard();
+            Console.WriteLine("Key b = " + TT.hashFunction(TT.zobristHashWithOperations(b)));
+            Console.WriteLine("Key b by operation = " + TT.hashFunction(TT.zobristHash(b)));
+            TT.Store(a, 0, 5, AIUtils.ITTEntryFlag.exact_value, 1);
+            TT.Store(b, 0, 5, AIUtils.ITTEntryFlag.exact_value, 1);
+            Entry n = TT.TableLookup(b);
+            Console.WriteLine(TT.hashFunction(n.zobristHashKey));
             Console.ReadLine();
         }
 

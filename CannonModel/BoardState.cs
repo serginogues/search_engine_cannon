@@ -128,39 +128,57 @@ namespace CannonModel
                     // (i+1, j)
                     // capture or step
                     Cell c = Grid[soldier.Row + 1, soldier.Column];
-                    retreat = StepCaptureRetreat(soldier, c);
+                    if (StepCaptureRetreat(soldier, c)) { retreat = true; }
 
                     // (i+1, j-1)
                     if (soldier.Column > 0)
                     {
                         c = Grid[soldier.Row + 1, soldier.Column - 1];
-                        retreat = StepCaptureRetreat(soldier, c);
+                        if (StepCaptureRetreat(soldier, c)) { retreat = true; }
                     }
 
                     // (i+1, j+1)
                     if (soldier.Column < 9)
                     {
                         c = Grid[soldier.Row + 1, soldier.Column + 1];
-                        retreat = StepCaptureRetreat(soldier, c);
+                        if (StepCaptureRetreat(soldier, c)) { retreat = true; }
                     }
                 }
                 // (i, j-1)
                 if (soldier.Column > 0)
                 {
                     Cell c = Grid[soldier.Row, soldier.Column - 1];
-                    retreat = StepCaptureRetreat(soldier, c);
+                    if (c.Piece == Enemy || c.Piece == TownEnemy)
+                    {
+                        // capture or retreat
+                        if (soldier.Row > 1)
+                        {
+                            retreat = true;
+                        }
+                        LegalMoves.Add(new Move(soldier.DeepCopy(),
+                                                c.DeepCopy(),
+                                                CannonUtils.IMoves.capture));
+                    }
                 }
 
                 // (i, j+1)
                 if (soldier.Column < 9)
                 {
                     Cell c = Grid[soldier.Row, soldier.Column + 1];
-                    retreat = StepCaptureRetreat(soldier, c);
+                    if (c.Piece == Enemy || c.Piece == TownEnemy)
+                    {
+                        // capture or retreat
+                        if (soldier.Row > 1)
+                        {
+                            retreat = true;
+                        }
+                        LegalMoves.Add(new Move(soldier.DeepCopy(),
+                                                c.DeepCopy(),
+                                                CannonUtils.IMoves.capture));
+                    }
                 }
 
                 // check if enemy in back row
-                
-                
                 // (i-1, j+1)
                 if (soldier.Row > 1)
                 {
@@ -187,34 +205,54 @@ namespace CannonModel
                     // (i-1, j)
                     // capture or step
                     Cell c = Grid[soldier.Row - 1, soldier.Column];
-                    retreat = StepCaptureRetreat(soldier, c);
+                    if (StepCaptureRetreat(soldier, c)) { retreat = true; }
 
                     // (i-1, j-1)
                     if (soldier.Column > 0)
                     {
                         c = Grid[soldier.Row - 1, soldier.Column - 1];
-                        retreat = StepCaptureRetreat(soldier, c);
+                        if (StepCaptureRetreat(soldier, c)) { retreat = true; }
                     }
 
                     // (i-1, j+1)
                     if (soldier.Column < 9)
                     {
                         c = Grid[soldier.Row - 1, soldier.Column + 1];
-                        retreat = StepCaptureRetreat(soldier, c);
+                        if (StepCaptureRetreat(soldier, c)) { retreat = true; }
                     }
                 }
                 // (i, j-1)
                 if (soldier.Column > 0)
                 {
                     Cell c = Grid[soldier.Row, soldier.Column - 1];
-                    retreat = StepCaptureRetreat(soldier, c);
+                    if (c.Piece == Enemy || c.Piece == TownEnemy)
+                    {
+                        // capture or retreat
+                        if (soldier.Row < 8)
+                        {
+                            retreat = true;
+                        }
+                        LegalMoves.Add(new Move(soldier.DeepCopy(),
+                                                c.DeepCopy(),
+                                                CannonUtils.IMoves.capture));
+                    }
                 }
 
                 // (i, j+1)
                 if (soldier.Column < 9)
                 {
                     Cell c = Grid[soldier.Row, soldier.Column + 1];
-                    retreat = StepCaptureRetreat(soldier, c);
+                    if (c.Piece == Enemy || c.Piece == TownEnemy)
+                    {
+                        // capture or retreat
+                        if (soldier.Row < 8)
+                        {
+                            retreat = true;
+                        }
+                        LegalMoves.Add(new Move(soldier.DeepCopy(),
+                                                c.DeepCopy(),
+                                                CannonUtils.IMoves.capture));
+                    }
                 }
 
                 // check if enemy in back row
