@@ -41,16 +41,5 @@ namespace SearchEngine
             }
             return num;
         }
-
-        public static void CheckTwoStates(Node current_s, Entry retrieved)
-        {
-            //current_s.State.printBoard();
-            //Node nnn = SearchEngine.tree.Where(x => x.key == retrieved.zobristHashKey).FirstOrDefault().node;
-            //nnn.State.printBoard();
-            //Console.WriteLine(retrieved.zobristHashKey);
-            ////s.State.printLegalMoves(s.State.LegalMoves);
-            ////nnn.State.printLegalMoves(nnn.State.LegalMoves);
-            //Console.ReadLine();
-        }
     }
 }

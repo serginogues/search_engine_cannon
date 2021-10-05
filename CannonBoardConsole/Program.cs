@@ -49,11 +49,11 @@ namespace CannonBoardConsole
 
         static void TTTest()
         {
-            Node a = new Node(new BoardState());
+            BoardState a = new BoardState();
             TranspositionTable TT = new TranspositionTable(a);
             //a.State.printBoard();
             Console.WriteLine("Key a = " + TT.hashFunction(TT.zobristHashWithOperations(a)));
-            Node b = a.Successor(0);
+            BoardState b = a.Successor(0);
             //b.State.printBoard();
             Console.WriteLine("Key b = " + TT.hashFunction(TT.zobristHashWithOperations(b)));
             Console.WriteLine("Key b by operation = " + TT.hashFunction(TT.zobristHash(b)));

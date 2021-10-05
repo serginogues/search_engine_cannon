@@ -22,12 +22,14 @@ namespace SearchEngine
         /// Transposition table
         /// </summary>
         public TranspositionTable myTT { get; set; }
+        public int nodesEvaluated { get; set; }
         public int prunnings { get; set; }
         public int type1e { get; set; }
 
-        public SearchEngine(Node root) 
+        public SearchEngine(BoardState root) 
         {
             myTT = new TranspositionTable(root);
+            nodesEvaluated = 0;
             prunnings = 0;
             type1e = 0;
         }
@@ -36,10 +38,11 @@ namespace SearchEngine
         /// Decision algorithm to find the best move given current state of the board
         /// Call: AlphaBetaWithTT(s, -inf, inf, depth)
         /// </summary>
-        public int AlphaBetaWithTT(Node s, int alpha, int beta, int depth)
+        public int AlphaBetaWithTT(BoardState s, int alpha, int beta, int depth)
         {
             // save original alpha value
             int olda = alpha;
+            nodesEvaluated++;
 
             // Transposition-table lookup
             Entry n = myTT.TableLookup(s);
@@ -65,19 +68,21 @@ namespace SearchEngine
 
             int bestValue = -100000000;
             int bestMove = 0;
-            List<int> child_list = Enumerable.Range(0, s.State.LegalMoves.Count).ToList();
+            //List<int> child_list = Enumerable.Range(0, s.LegalMoves.Count).ToList();
 
             if (n.Depth >= depth)
             {
                 // if the TT does not give a cutoff, we play the best move as first
                 bestValue = n.Score;
                 bestMove = n.BestMove;
-
+                int result = 0;
                 // Do move ordering with child list
                 try
                 {
-                    child_list.RemoveAt(bestMove);
-                    child_list.Insert(0, bestMove);
+                    // First iteration with bestMove
+                    //child_list.RemoveAt(bestMove);
+                    //child_list.Insert(0, bestMove);
+                    result = -AlphaBetaWithTT(s.Successor(bestMove), -beta, -alpha, depth - 1);
                 }
                 catch (Exception)
                 {
@@ -85,26 +90,53 @@ namespace SearchEngine
                     // ignore it
                     type1e++;
                 }
-                
-            }
 
-            // if position is not found, n.depth will be -1
-
-            // Regular alpha-beta search algorithm
-            foreach (int child in child_list)
-            {
-                int result = -AlphaBetaWithTT(s.Successor(child), -beta, -alpha, depth - 1);
-                if (result > bestValue)
-                {
-                    bestValue = result;
-                    bestMove = child;
-                }
+                if (result > bestValue) { bestValue = result; }
                 if (bestValue > alpha) { alpha = bestValue; }
-                if (bestValue >= beta)
+                if (bestValue >= beta) { prunnings++; }
+                else
                 {
-                    prunnings++;
-                    break;
+                    // Regular alpha-beta search algorithm
+                    for (int child = 0; child < s.LegalMoves.Count; child++)
+                    {
+                        if (child != bestMove)
+                        {
+                            result = -AlphaBetaWithTT(s.Successor(child), -beta, -alpha, depth - 1);
+                            if (result > bestValue)
+                            {
+                                bestValue = result;
+                                bestMove = child;
+                            }
+                            if (bestValue > alpha) { alpha = bestValue; }
+                            if (bestValue >= beta)
+                            {
+                                prunnings++;
+                                break;
+                            }
+                        }
+                    }
                 }
+            }
+            else
+            {
+                // if position is not found, n.depth will be -1
+                // Regular alpha-beta search algorithm
+                for (int child = 0; child < s.LegalMoves.Count; child++)
+                {
+                    int result = -AlphaBetaWithTT(s.Successor(child), -beta, -alpha, depth - 1);
+                    if (result > bestValue)
+                    {
+                        bestValue = result;
+                        bestMove = child;
+                    }
+                    if (bestValue > alpha) { alpha = bestValue; }
+                    if (bestValue >= beta)
+                    {
+                        prunnings++;
+                        break;
+                    }
+                }
+
             }
 
             // Traditional transposition table storing of bounds
@@ -128,7 +160,7 @@ namespace SearchEngine
             return bestValue;           
         }
 
-        public int AlphaBeta(Node s, int alpha, int beta, int depth)
+        public int AlphaBeta(BoardState s, int alpha, int beta, int depth)
         {
 
             // leaf node?
@@ -139,7 +171,7 @@ namespace SearchEngine
 
             int bestValue = -100000000;
             int bestMove = 0;
-            for (int child = 0; child < s.State.LegalMoves.Count; child++)
+            for (int child = 0; child < s.LegalMoves.Count; child++)
             {
                 int result = -AlphaBeta(s.Successor(child), -beta, -alpha, depth - 1);
                 if (result > bestValue)

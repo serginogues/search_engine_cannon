@@ -23,7 +23,7 @@ namespace SearchEngine
 
         public ulong rootZobristHash { get; set; }
 
-        public TranspositionTable(Node root)
+        public TranspositionTable(BoardState root)
         {
             TT = new Entry[ushort.MaxValue];
             Table = new SoldierToUlong();
@@ -51,7 +51,7 @@ namespace SearchEngine
         /// To obtain this hash, a simple method is to "modulo" the zobrist key, or do a "binary and" : transposition table index = zobrist_key & 0xFFFF
         /// If position is not found, depth will be -1
         /// </summary>
-        public Entry TableLookup(Node s)
+        public Entry TableLookup(BoardState s)
         {
             // compute the zobrist key for the given game position
             ulong zobristHashKey = zobristHashWithOperations(s);
@@ -73,14 +73,23 @@ namespace SearchEngine
             }
         }
 
-        public void Store(Node s, int bestMove, int bestValue, AIUtils.ITTEntryFlag flag, int depth)
+        public void Store(BoardState s, int bestMove, int bestValue, AIUtils.ITTEntryFlag flag, int depth)
         {
             // For a given position, compute the zobrist key, and then a hash of the zobrist key, which will be your index in your transposition table.
             ulong zobristHashKey = zobristHashWithOperations(s);
             int entry_key = hashFunction(zobristHashKey);
             Entry n = TT.ElementAtOrDefault(entry_key);
 
-            // Type-2 error Replacing Scheme: Always replace (if not ancient)
+            // always replace
+            TT[entry_key] = new Entry(zobristHashKey)
+            {
+                BestMove = bestMove,
+                Depth = depth,
+                Flag = flag,
+                Score = bestValue
+            };
+
+            // Type - 2 error Replacing Scheme: Always replace(if not ancient)
             if (n != null) { ReplaceIfNotAncient(n, entry_key, zobristHashKey, bestMove, bestValue, flag, depth); }
             else
             {
@@ -92,7 +101,7 @@ namespace SearchEngine
                     Score = bestValue
                 };
             }
-            
+
         }
 
         private void ReplaceIfNotAncient(Entry n, int entry_key, ulong zobristHashKey, int bestMove, int bestValue, AIUtils.ITTEntryFlag flag, int depth)
@@ -129,10 +138,10 @@ namespace SearchEngine
 
         #region Zobrist Hash
 
-        public ulong zobristHash(Node s)
+        public ulong zobristHash(BoardState s)
         {
             ulong key = 0;
-            foreach (Cell soldier in s.State.Grid)
+            foreach (Cell soldier in s.Grid)
             {
                 if (soldier.Piece == CannonUtils.ISoldiers.dark_soldier ||
                     soldier.Piece == CannonUtils.ISoldiers.light_soldier ||
@@ -148,10 +157,10 @@ namespace SearchEngine
             return key;
         }
 
-        public ulong zobristHashWithOperations(Node state)
+        public ulong zobristHashWithOperations(BoardState state)
         {
             ulong key = rootZobristHash;
-            foreach (Move move in state.State.History)
+            foreach (Move move in state.History)
             {
                 switch (move.Type)
                 {

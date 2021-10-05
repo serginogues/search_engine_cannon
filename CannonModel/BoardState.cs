@@ -319,34 +319,31 @@ namespace CannonModel
             {
                 // i to i-1
                 // retreat backward
-                Cell c = Grid[soldier.Row - 2, soldier.Column];
                 if (Grid[soldier.Row - 1, soldier.Column].Piece == CannonUtils.ISoldiers.empty &&
-                    c.Piece == CannonUtils.ISoldiers.empty)
+                    Grid[soldier.Row - 2, soldier.Column].Piece == CannonUtils.ISoldiers.empty)
                 {
-                    LegalMoves.Add(new Move(soldier.DeepCopy(), 
-                                            c.DeepCopy(), 
+                    LegalMoves.Add(new Move(soldier.DeepCopy(),
+                                            Grid[soldier.Row - 2, soldier.Column].DeepCopy(), 
                                             CannonUtils.IMoves.retreat));
                 }
 
                 // retreat left diagonal
-                c = Grid[soldier.Row - 2, soldier.Column - 2];
                 if (canRetreatLeft &&
                     Grid[soldier.Row - 1, soldier.Column-1].Piece == CannonUtils.ISoldiers.empty &&
-                    c.Piece == CannonUtils.ISoldiers.empty)
+                    Grid[soldier.Row - 2, soldier.Column - 2].Piece == CannonUtils.ISoldiers.empty)
                 {
-                    LegalMoves.Add(new Move(soldier.DeepCopy(), 
-                                    c.DeepCopy(),
+                    LegalMoves.Add(new Move(soldier.DeepCopy(),
+                                    Grid[soldier.Row - 2, soldier.Column - 2].DeepCopy(),
                                     CannonUtils.IMoves.retreat));
                 }
 
                 // retreat right diagonal
-                c = Grid[soldier.Row - 2, soldier.Column + 2];
                 if (canRetreatRight &&
                     Grid[soldier.Row - 1, soldier.Column + 1].Piece == CannonUtils.ISoldiers.empty &&
-                    c.Piece == CannonUtils.ISoldiers.empty)
+                    Grid[soldier.Row - 2, soldier.Column + 2].Piece == CannonUtils.ISoldiers.empty)
                 {
-                    LegalMoves.Add(new Move(soldier.DeepCopy(), 
-                                    c.DeepCopy(),
+                    LegalMoves.Add(new Move(soldier.DeepCopy(),
+                                    Grid[soldier.Row - 2, soldier.Column + 2].DeepCopy(),
                                     CannonUtils.IMoves.retreat));
                 }
 
@@ -355,34 +352,31 @@ namespace CannonModel
             {
                 // i to i+1
                 // retreat backward
-                Cell c = Grid[soldier.Row + 2, soldier.Column];
                 if (Grid[soldier.Row + 1, soldier.Column].Piece == CannonUtils.ISoldiers.empty &&
-                    c.Piece == CannonUtils.ISoldiers.empty)
+                    Grid[soldier.Row + 2, soldier.Column].Piece == CannonUtils.ISoldiers.empty)
                 {
-                    LegalMoves.Add(new Move(soldier.DeepCopy(), 
-                                    c.DeepCopy(),
+                    LegalMoves.Add(new Move(soldier.DeepCopy(),
+                                    Grid[soldier.Row + 2, soldier.Column].DeepCopy(),
                                     CannonUtils.IMoves.retreat));
                 }
 
                 // retreat left diagonal
-                c = Grid[soldier.Row + 2, soldier.Column - 2];
                 if (canRetreatLeft &&
                     Grid[soldier.Row + 1, soldier.Column - 1].Piece == CannonUtils.ISoldiers.empty &&
-                    c.Piece == CannonUtils.ISoldiers.empty)
+                    Grid[soldier.Row + 2, soldier.Column - 2].Piece == CannonUtils.ISoldiers.empty)
                 {
-                    LegalMoves.Add(new Move(soldier.DeepCopy(), 
-                                    c.DeepCopy(),
+                    LegalMoves.Add(new Move(soldier.DeepCopy(),
+                                    Grid[soldier.Row + 2, soldier.Column - 2].DeepCopy(),
                                     CannonUtils.IMoves.retreat));
                 }
 
                 // retreat right diagonal
-                c = Grid[soldier.Row + 2, soldier.Column + 2];
                 if (canRetreatRight &&
                     Grid[soldier.Row + 1, soldier.Column + 1].Piece == CannonUtils.ISoldiers.empty &&
-                    c.Piece == CannonUtils.ISoldiers.empty)
+                    Grid[soldier.Row + 2, soldier.Column + 2].Piece == CannonUtils.ISoldiers.empty)
                 {
-                    LegalMoves.Add(new Move(soldier.DeepCopy(), 
-                                    c.DeepCopy(),
+                    LegalMoves.Add(new Move(soldier.DeepCopy(),
+                                    Grid[soldier.Row + 2, soldier.Column + 2].DeepCopy(),
                                     CannonUtils.IMoves.retreat));
                 }
 
@@ -588,168 +582,28 @@ namespace CannonModel
         }
         #endregion
 
-        #region printMethods
-        public void printBoard()
+        #region AI
+        /// <summary>
+        /// Evaluate State
+        /// </summary>
+        public int Evaluate()
         {
-            string[] columnChar = { "A", "B", "C", "D", "E", "F", "G", "H", "I", "J" };
-            Console.WriteLine("================================= Counter:" + TurnCounter);
-            Console.WriteLine();
-            Console.Write("   ");
-            for (int i = 0; i < columnChar.Length; i++) { Console.Write(columnChar[i]); Console.Write("   "); }
-            Console.WriteLine();
-            int counter = 0;
-            for (int i = 10 - 1; i >= 0; i--)
-            {
-                Console.Write(i + 1);
-                Console.Write(" ");
-                if (i != 9) { Console.Write(" "); }
-                for (int j = 0; j < 10; j++)
-                {
-                    Cell c = Grid[i, j];
-                    if (CannonUtils.IsOdd(TurnCounter)) 
-                    {
-                        // Light soldiers turn (p2)
-                        if (c.Piece == CannonUtils.ISoldiers.dark_soldier) { Console.Write("X"); }
-                        else if (c.Piece == CannonUtils.ISoldiers.light_soldier) { Console.Write(counter); counter++; }
-                        else if (c.Piece == CannonUtils.ISoldiers.dark_town || c.Piece == CannonUtils.ISoldiers.light_town) { Console.Write("T"); }
-                        else if (c.Piece == CannonUtils.ISoldiers.empty) { Console.Write("·"); }
-
-                    }
-                    else
-                    {
-                        if (c.Piece == CannonUtils.ISoldiers.dark_soldier) { Console.Write(counter); counter++; }
-                        else if (c.Piece == CannonUtils.ISoldiers.light_soldier) { Console.Write("O"); }
-                        else if (c.Piece == CannonUtils.ISoldiers.dark_town || c.Piece == CannonUtils.ISoldiers.light_town) { Console.Write("T"); }
-                        else if (c.Piece == CannonUtils.ISoldiers.empty) { Console.Write("·"); }
-                    }
-                    if (j != 9) { Console.Write(" - "); }
-
-                }
-                Console.WriteLine();
-                if (i != 0)
-                {
-                    Console.Write(" ");
-                    for (int j = 0; j < 10; j++)
-                    {
-                        Console.Write("  ");
-                        Console.Write("| ");
-                    }
-                    Console.WriteLine();
-                }
-            }
-            Console.WriteLine();
-            Console.WriteLine("Soldiers legend: X = Dark Soldier, O = Light Soldier, T = Town, · = empty cell");
-            Console.WriteLine("=================================");
-
+            Random rand = new Random(Guid.NewGuid().GetHashCode());
+            return rand.Next(-200, 200);
         }
 
-        public void printBoardWithMoves(Cell chosen) 
+        public bool TerminalState()
         {
-            string[] columnChar = { "A", "B", "C", "D", "E", "F", "G", "H", "I", "J" };
-            Console.WriteLine("================================= Counter:" + TurnCounter);
-            Console.WriteLine();
-            Console.Write("   ");
-            for (int i = 0; i < columnChar.Length; i++) { Console.Write(columnChar[i]); Console.Write("   "); }
-            Console.WriteLine();
-
-            List<Move> list = LegalMoves.Where(x => x.OldCell.Row == chosen.Row && x.OldCell.Column == chosen.Column).ToList();
-            for (int i = 10 - 1; i >= 0; i--)
-            {
-                Console.Write(i + 1);
-                Console.Write(" ");
-                if (i != 9) { Console.Write(" "); }
-                for (int j = 0; j < 10; j++)
-                {
-                    Cell c = Grid[i, j];
-                    Move mm = list.Where(x => x.NewCell.Row == c.Row && x.NewCell.Column == c.Column).FirstOrDefault();
-                    if (c == chosen) { Console.Write("S"); }
-                    else if (mm != null)
-                    {
-                        if (mm.Type == CannonUtils.IMoves.step) { Console.Write("m"); }
-                        else if (mm.Type == CannonUtils.IMoves.retreat) { Console.Write("r"); }
-                        else if (mm.Type == CannonUtils.IMoves.capture) { Console.Write("k"); }
-                        else if (mm.Type == CannonUtils.IMoves.slideCannon) { Console.Write("s"); }
-                    }
-                    else if (c.Piece == CannonUtils.ISoldiers.dark_soldier) { Console.Write("X"); }
-                    else if (c.Piece == CannonUtils.ISoldiers.light_soldier) { Console.Write("O"); }
-                    else if (c.Piece == CannonUtils.ISoldiers.dark_town || c.Piece == CannonUtils.ISoldiers.light_town) { Console.Write("T"); }
-                    else if (c.Piece == CannonUtils.ISoldiers.empty) { Console.Write("·"); }
-                    if (j != 9) { Console.Write(" - "); }
-
-                }
-                Console.WriteLine();
-                if (i != 0)
-                {
-                    Console.Write(" ");
-                    for (int j = 0; j < 10; j++)
-                    {
-                        Console.Write("  ");
-                        Console.Write("| ");
-                    }
-                    Console.WriteLine();
-                }
-            }
-            Console.WriteLine();
-            Console.WriteLine("Soldiers legend: X = Dark Soldier, O = Light Soldier, T = Town, · = empty cell");
-            Console.WriteLine("Available Moves legend: m = step, r = retreat, k = capture, s = slide");
-            Console.WriteLine("=================================");
-
+            if (LegalMoves.Count == 0) { return true; }
+            else { return false; }
         }
 
-        public void printSoldiers()
+        public BoardState Successor(int move_id)
         {
-            Console.WriteLine("List of soldiers: ");
-            int count = 0;
-            foreach (Cell s in Grid)
-            {
-                if (s.Piece == CannonUtils.ISoldiers.dark_soldier ||
-                    s.Piece == CannonUtils.ISoldiers.light_soldier ||
-                    s.Piece == CannonUtils.ISoldiers.dark_town ||
-                    s.Piece == CannonUtils.ISoldiers.light_town)
-                {
-                    Console.WriteLine(count+ " - Soldier at: (" + s.Row + "," + s.Column+ ")");
-                    count++;
-                }
-            }
-        }
+            BoardState child = DeepCopy();
+            child.ExecuteMove(LegalMoves[move_id]);
+            return child;
 
-        public void printLegalMoves(List<Move> moves)
-        {
-            int count = 0;
-            Console.WriteLine("List of legal moves: ");
-            foreach (Move move in moves)
-            {
-                printMove(move, count);
-                count++;
-            }
-        }
-
-        private void printMove(Move move, int count)
-        {
-            switch (move.Type)
-            {
-                case CannonUtils.IMoves.step:
-                    Console.WriteLine(count + "     - Soldier steps from (" + move.OldCell.Row + "," + move.OldCell.Column + ") to (" + move.NewCell.Row + "," + move.NewCell.Column+")");
-                    break;
-                case CannonUtils.IMoves.capture:
-                    Console.WriteLine(count + "     - Soldier captures from (" + move.OldCell.Row + "," + move.OldCell.Column + ") to (" + move.NewCell.Row + "," + move.NewCell.Column + ")");
-                    break;
-                case CannonUtils.IMoves.retreat:
-                    Console.WriteLine(count + "     - Soldier retreats from (" + move.OldCell.Row + "," + move.OldCell.Column + ") to (" + move.NewCell.Row + "," + move.NewCell.Column + ")");
-                    break;
-                case CannonUtils.IMoves.slideCannon:
-                    Console.WriteLine(count + "     - Soldier slides from (" + move.OldCell.Row + "," + move.OldCell.Column + ") to (" + move.NewCell.Row + "," + move.NewCell.Column + ")");
-                    break;
-                case CannonUtils.IMoves.shootCannon:
-                    Console.WriteLine(count + "     - Shoot soldier at cell (" + move.NewCell.Row + "," + move.NewCell.Column + ")");
-                    break;
-            }
-        }
-
-        public void printNextPlayer()
-        {
-            if (CannonUtils.IsOdd(TurnCounter)) { Console.WriteLine("Light soldiers turn (p2)"); }
-            else { Console.WriteLine("Dark soldiers turn (p1)"); }
         }
         #endregion
     }

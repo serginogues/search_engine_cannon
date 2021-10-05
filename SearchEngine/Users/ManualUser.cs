@@ -21,13 +21,13 @@ namespace CannonModel
                 Console.WriteLine("anywhere on the rows closest to them (1st for the Dark player and 10th for the Light player) excluding corners:");
 
                 // p1
-                myBoard.printNextPlayer();
+                CannonUtils.printNextPlayer(myBoard);
                 Console.WriteLine(" - Write COLUMN number (i.e: '4' means column E):");
                 int col = int.Parse(Console.ReadLine());
                 myBoard.AddTown(col, myBoard.Friend);
 
                 // p2
-                myBoard.printNextPlayer();
+                CannonUtils.printNextPlayer(myBoard);
                 Console.WriteLine(" - Write COLUMN number (i.e: '4' means column E):");
                 col = int.Parse(Console.ReadLine());
                 myBoard.AddTown(col, myBoard.Friend);
@@ -39,9 +39,9 @@ namespace CannonModel
         {
 
             Console.Clear();
-            myBoard.printNextPlayer();
+            CannonUtils.printNextPlayer(myBoard);
             //myBoard.printSoldiers();
-            myBoard.printBoard();
+            CannonUtils.printBoard(myBoard);
             printShoots(myBoard);
             Console.WriteLine();
             Console.WriteLine("Choose a soldier");
@@ -60,7 +60,7 @@ namespace CannonModel
                         {
                             if (id == count)
                             {
-                                myBoard.printBoardWithMoves(s);
+                                CannonUtils.printBoardWithMoves(myBoard, s);
                                 cell = s;
                             }
                             count++;
@@ -72,7 +72,7 @@ namespace CannonModel
                         {
                             if (id == count)
                             {
-                                myBoard.printBoardWithMoves(s);
+                                CannonUtils.printBoardWithMoves(myBoard, s);
                                 cell = s;
                             }
                             count++;
@@ -81,7 +81,7 @@ namespace CannonModel
                 }
             }
             List<Move> moves = myBoard.LegalMoves.Where(x => x.OldCell.Row == cell.Row && x.OldCell.Column == cell.Column).ToList();
-            myBoard.printLegalMoves(moves);
+            CannonUtils.printLegalMoves(moves);
             Console.WriteLine("Choose a move");
             id = readActionId();
             id = myBoard.LegalMoves.IndexOf(moves.ElementAt(id));
