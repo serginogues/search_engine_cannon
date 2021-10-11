@@ -22,24 +22,29 @@ namespace SearchEngine
             upper_bound
         }
 
-        public static int getIntFromBitArray(BitArray bitArray)
+        public static int AlphaBeta(BoardState s, int alpha, int beta, int depth)
         {
-            if (bitArray.Length > 32)
-                throw new ArgumentException("Argument length shall be at most 32 bits.");
 
-            int[] array = new int[1];
-            bitArray.CopyTo(array, 0);
-            return array[0];
-        }
-
-        public static long random64Bit(Random rand)
-        {
-            long num = -1000000000000000000L;
-            while (num < 0)
+            // leaf node?
+            if (depth == 0 || s.TerminalState != CannonUtils.INode.leaf)
             {
-                num = (long)(rand.Next(1, 100000) * 1000000000000000000L);
+                return 0;
             }
-            return num;
+
+            int bestValue = -100000000;
+            int bestMove = 0;
+            for (int child = 0; child < s.LegalMoves.Count; child++)
+            {
+                int result = -AlphaBeta(s.Successor(child), -beta, -alpha, depth - 1);
+                if (result > bestValue)
+                {
+                    bestValue = result;
+                    bestMove = child;
+                }
+                if (bestValue > alpha) { alpha = bestValue; }
+                if (bestValue >= beta) { break; }
+            }
+            return bestValue;
         }
     }
 }

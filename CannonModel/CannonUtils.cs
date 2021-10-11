@@ -7,27 +7,6 @@ namespace CannonModel
 {
     public static class CannonUtils
     {
-        public static IBounds BoundsState(Cell cell)
-        {
-            if (cell.Row == 9)
-            {
-                if (cell.Column == 0) { return IBounds.LeftUpperC; }
-                else if (cell.Column == 9) { return IBounds.RightUpperC; }
-                else { return IBounds.upperBound; }
-            }
-            else if (cell.Row == 0)
-            {
-                if (cell.Column == 0) { return IBounds.LeftDownC; }
-                else if (cell.Column == 9) { return IBounds.RightDownC; }
-                else { return IBounds.lowerBound; }
-            }
-            else
-            {
-                if (cell.Column == 0) { return IBounds.leftBound; }
-                else if (cell.Column == 9) { return IBounds.rightBound; }
-                else { return IBounds.middle; }
-            }
-        }
 
         public static bool IsOdd(int value)
         {
@@ -85,19 +64,6 @@ namespace CannonModel
             light_town
         }
 
-        public enum IBounds
-        {
-            middle,
-            upperBound,
-            lowerBound,
-            leftBound,
-            rightBound,
-            LeftUpperC,
-            LeftDownC,
-            RightUpperC,
-            RightDownC
-        }
-
         public enum IMoves
         {
             none,
@@ -108,45 +74,24 @@ namespace CannonModel
             shootCannon
         }
 
+        public enum INode 
+        {
+            dark_wins,
+            light_wins,
+            leaf
+        }
+
         public static int Size = 10; // Board size
         public static readonly int[] ColumnLightSoldiers = { 1, 3, 5, 7, 9 }; // Initial row and column values foreach soldier color
         public static readonly int[] RowLightSoldiers = { 6, 7, 8 };
         public static readonly int[] ColumnDarkSoldiers = { 0, 2, 4, 6, 8 };
         public static readonly int[] RowDarkSoldiers = { 1, 2, 3 };
 
-        public static string ColumnInt_To_Char(int num)
-        {
-            switch (num)
-            {
-                case 0:
-                    return "A";
-                case 1:
-                    return "B";
-                case 2:
-                    return "C";
-                case 3:
-                    return "D";
-                case 4:
-                    return "E";
-                case 5:
-                    return "F";
-                case 6:
-                    return "G";
-                case 7:
-                    return "H";
-                case 8:
-                    return "I";
-                case 9:
-                    return "J";
-            }
-            return "A";
-        }
-
         #region printMethods
         public static void printBoard(BoardState s)
         {
             string[] columnChar = { "A", "B", "C", "D", "E", "F", "G", "H", "I", "J" };
-            Console.WriteLine("================================= Counter:" + s.TurnCounter);
+            Console.WriteLine("Counter:" + s.TurnCounter);
             Console.WriteLine();
             Console.Write("   ");
             for (int i = 0; i < columnChar.Length; i++) { Console.Write(columnChar[i]); Console.Write("   "); }
@@ -250,23 +195,6 @@ namespace CannonModel
 
         }
 
-        public static void printSoldiers(BoardState state)
-        {
-            Console.WriteLine("List of soldiers: ");
-            int count = 0;
-            foreach (Cell s in state.Grid)
-            {
-                if (s.Piece == CannonUtils.ISoldiers.dark_soldier ||
-                    s.Piece == CannonUtils.ISoldiers.light_soldier ||
-                    s.Piece == CannonUtils.ISoldiers.dark_town ||
-                    s.Piece == CannonUtils.ISoldiers.light_town)
-                {
-                    Console.WriteLine(count + " - Soldier at: (" + s.Row + "," + s.Column + ")");
-                    count++;
-                }
-            }
-        }
-
         public static void printLegalMoves(List<Move> moves)
         {
             int count = 0;
@@ -278,7 +206,7 @@ namespace CannonModel
             }
         }
 
-        private static void printMove(Move move, int count)
+        public static void printMove(Move move, int count)
         {
             switch (move.Type)
             {

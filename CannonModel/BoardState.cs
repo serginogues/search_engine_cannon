@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using System.Linq;
+using System.Diagnostics;
 
 namespace CannonModel
 {
@@ -28,62 +29,103 @@ namespace CannonModel
         #region Properties
         public int TurnCounter { get; set; }
         public Cell[,] Grid { get; set; }
+        public List<Cell> SoldierList { get; set; }
         public List<Move> LegalMoves { get; set; }
         /// <summary>
         /// List of moves from root to this state of the board
         /// </summary>
         public List<Move> History { get; set; }
+        /// <summary>
+        /// if node is terminal node, then return its terminalNode value
+        /// </summary>
+        public CannonUtils.INode TerminalState { get; set; }
+        #endregion
 
-        public BoardState ()
+        #region Constructor (root node)
+        /// <summary>
+        /// Called only once at root node
+        /// </summary>
+        public void root_init()
         {
             History = new List<Move>();
             TurnCounter = 0;
-            InitGrid();
-            ResetStateBoard(); 
+            initGrid();
+            initLegalMoves();
+            TerminalState = CannonUtils.INode.leaf;
+        }
+
+        /// <summary>
+        /// Initialize [Grid];
+        /// Assign soldiers to its position;
+        /// Initialize [soldierList];
+        /// </summary>
+        private void initGrid()
+        {
+            int _size = CannonUtils.Size;
+
+            Grid = new Cell[_size, _size];
+            for (int i = 0; i < _size; i++)
+            {
+                for (int j = 0; j < _size; j++)
+                {
+                    Grid[i, j] = new Cell(i, j);
+                    if (CannonUtils.RowDarkSoldiers.Contains(i) && CannonUtils.ColumnDarkSoldiers.Contains(j))
+                    {
+                        Grid[i, j].Piece = CannonUtils.ISoldiers.dark_soldier;
+                    }
+                    else if (CannonUtils.RowLightSoldiers.Contains(i) && CannonUtils.ColumnLightSoldiers.Contains(j))
+                    {
+                        Grid[i, j].Piece = CannonUtils.ISoldiers.light_soldier;
+                    }
+                }
+            }
         }
         #endregion
 
-        #region Main methods
+        #region Make move
         /// <summary>
-        /// Reset AVAILABLE_MOVES and CURRENT_SOLDIER
+        /// Generate child based on move_id reference
         /// </summary>
-        public void ResetStateBoard()
+        public BoardState Successor(int move_id)
         {
-            LegalMoves = new List<Move>();
-            foreach (Cell soldier in Grid)
-            {
-                if (soldier.Piece == Friend) 
-                {
-                    SetSTEP_CAPTURE_RETREATMoves(soldier);
-                    SetCANNONMoves(soldier);
-                }
-                if (soldier.Piece == Enemy || soldier.Piece == TownEnemy) { SetSHOOTS(soldier); }
-            }
-        }
+            // create [child] that is exactly the same as [this]
+            BoardState child = DeepCopy();
 
-        public void ExecuteMove(Move move)
-        {
+            // move soldiers in [child] based on [move_id]
+            Move move = child.LegalMoves[move_id];
             switch (move.Type)
             {
                 case CannonUtils.IMoves.shootCannon:
-                    Grid[move.NewCell.Row, move.NewCell.Column].Piece = CannonUtils.ISoldiers.empty;
+                    TerminalMove(move);
+                    child.Grid[move.NewCell.Row, move.NewCell.Column].Piece = CannonUtils.ISoldiers.empty;
                     break;
                 case CannonUtils.IMoves.step:
                 case CannonUtils.IMoves.retreat:
-                case CannonUtils.IMoves.capture:
                 case CannonUtils.IMoves.slideCannon:
-                    Grid[move.NewCell.Row, move.NewCell.Column].Piece = move.OldCell.Piece;
-                    Grid[move.OldCell.Row, move.OldCell.Column].Piece = CannonUtils.ISoldiers.empty;
+                    child.Grid[move.NewCell.Row, move.NewCell.Column].Piece = move.OldCell.Piece;
+                    child.Grid[move.OldCell.Row, move.OldCell.Column].Piece = CannonUtils.ISoldiers.empty;
+                    break;
+                case CannonUtils.IMoves.capture:
+                    TerminalMove(move);
+                    child.Grid[move.NewCell.Row, move.NewCell.Column].Piece = move.OldCell.Piece;
+                    child.Grid[move.OldCell.Row, move.OldCell.Column].Piece = CannonUtils.ISoldiers.empty;
                     break;
             }
-            History.Add(move);
-            TurnCounter++;
-            ResetStateBoard();
+
+            // update history and counter
+            child.History.Add(move);
+            child.TurnCounter++;
+
+            // update LegalMoves
+            child.initLegalMoves();
+
+            // TODO: check if child is terminal node
+            return child;
         }
 
-
         /// <summary>
-        /// To make children from current BoardState and change their properties without referencing its parent
+        /// To make children from current BoardState and change their properties without referencing its parent;
+        /// Copied parameters: History, Grid, TurnCounter, LegalMoves
         /// </summary>
         public BoardState DeepCopy()
         {
@@ -101,9 +143,46 @@ namespace CannonModel
             }
             return other;
         }
+
+        private void TerminalMove(Move move)
+        {
+            if(move.NewCell.Piece == CannonUtils.ISoldiers.dark_town)
+            {
+                // light wins
+                TerminalState = CannonUtils.INode.light_wins;
+            }
+            else if (move.NewCell.Piece == CannonUtils.ISoldiers.light_town)
+            {
+                // dark wins
+                TerminalState = CannonUtils.INode.dark_wins;
+            }
+        }
         #endregion
 
         #region Moves
+        /// <summary>
+        /// Reset AVAILABLE_MOVES and CURRENT_SOLDIER
+        /// </summary>
+        public void initLegalMoves()
+        {
+            SoldierList = new List<Cell>();
+            LegalMoves = new List<Move>();
+            foreach (Cell soldier in Grid)
+            {
+                if (soldier.Piece == Friend) 
+                {
+                    SoldierList.Add(soldier);
+                    SetSTEP_CAPTURE_RETREATMoves(soldier);
+                    SetCANNONMoves(soldier);
+                }
+                else if (soldier.Piece == Enemy || soldier.Piece == TownEnemy) 
+                {
+                    SoldierList.Add(soldier);
+                    SetSHOOTS(soldier); 
+                }
+            }
+        }
+        
         /// <param name="_column"> Column to be added the town </param>
         /// <param name="_color"> True == Dark,  False == Light </param>
         public void AddTown(int _column, CannonUtils.ISoldiers _color)
@@ -554,57 +633,11 @@ namespace CannonModel
         }
         #endregion
 
-        #region Utils
+        #region Enemy Friend Utils
         public CannonUtils.ISoldiers Friend => CannonUtils.IsOdd(TurnCounter) ? CannonUtils.ISoldiers.light_soldier : CannonUtils.ISoldiers.dark_soldier;
         public CannonUtils.ISoldiers Enemy => !CannonUtils.IsOdd(TurnCounter) ? CannonUtils.ISoldiers.light_soldier : CannonUtils.ISoldiers.dark_soldier;
+        public CannonUtils.ISoldiers TownFriend => CannonUtils.IsOdd(TurnCounter) ? CannonUtils.ISoldiers.light_town : CannonUtils.ISoldiers.dark_town;
         public CannonUtils.ISoldiers TownEnemy => !CannonUtils.IsOdd(TurnCounter) ? CannonUtils.ISoldiers.light_town : CannonUtils.ISoldiers.dark_town;
-
-        private void InitGrid()
-        {
-            int _size = CannonUtils.Size;
-            Grid = new Cell[_size, _size];
-            for (int i = 0; i < _size; i++)
-            {
-                for (int j = 0; j < _size; j++)
-                {
-                    Grid[i, j] = new Cell(i, j);
-                    if (CannonUtils.RowDarkSoldiers.Contains(i) && CannonUtils.ColumnDarkSoldiers.Contains(j))
-                    {
-                        Grid[i, j].Piece = CannonUtils.ISoldiers.dark_soldier;
-                    }
-                    else if (CannonUtils.RowLightSoldiers.Contains(i) && CannonUtils.ColumnLightSoldiers.Contains(j))
-                    {
-                        Grid[i, j].Piece = CannonUtils.ISoldiers.light_soldier;
-                    }
-
-                }
-            }
-        }
-        #endregion
-
-        #region AI
-        /// <summary>
-        /// Evaluate State
-        /// </summary>
-        public int Evaluate()
-        {
-            Random rand = new Random(Guid.NewGuid().GetHashCode());
-            return rand.Next(-200, 200);
-        }
-
-        public bool TerminalState()
-        {
-            if (LegalMoves.Count == 0) { return true; }
-            else { return false; }
-        }
-
-        public BoardState Successor(int move_id)
-        {
-            BoardState child = DeepCopy();
-            child.ExecuteMove(LegalMoves[move_id]);
-            return child;
-
-        }
         #endregion
     }
 }

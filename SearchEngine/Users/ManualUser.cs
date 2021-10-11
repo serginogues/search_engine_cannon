@@ -8,37 +8,10 @@ namespace CannonModel
 {
     public class ManualUser
     {
-        public void SetTowns(BoardState myBoard, bool auto = true)
+        public BoardState MakeMove(BoardState myBoard)
         {
-            if (auto)
-            {
-                myBoard.AddTown(5, myBoard.Friend);
-                myBoard.AddTown(4, myBoard.Friend);
-            }
-            else
-            {
-                Console.WriteLine("On their first turns both players put a special piece called 'Town'");
-                Console.WriteLine("anywhere on the rows closest to them (1st for the Dark player and 10th for the Light player) excluding corners:");
-
-                // p1
-                CannonUtils.printNextPlayer(myBoard);
-                Console.WriteLine(" - Write COLUMN number (i.e: '4' means column E):");
-                int col = int.Parse(Console.ReadLine());
-                myBoard.AddTown(col, myBoard.Friend);
-
-                // p2
-                CannonUtils.printNextPlayer(myBoard);
-                Console.WriteLine(" - Write COLUMN number (i.e: '4' means column E):");
-                col = int.Parse(Console.ReadLine());
-                myBoard.AddTown(col, myBoard.Friend);
-
-            }
-        }
-
-        public void MakeMove(BoardState myBoard)
-        {
-
-            Console.Clear();
+            Console.WriteLine();
+            Console.WriteLine("MANUAL USER TURN");
             CannonUtils.printNextPlayer(myBoard);
             //myBoard.printSoldiers();
             CannonUtils.printBoard(myBoard);
@@ -82,10 +55,14 @@ namespace CannonModel
             }
             List<Move> moves = myBoard.LegalMoves.Where(x => x.OldCell.Row == cell.Row && x.OldCell.Column == cell.Column).ToList();
             CannonUtils.printLegalMoves(moves);
+
             Console.WriteLine("Choose a move");
             id = readActionId();
             id = myBoard.LegalMoves.IndexOf(moves.ElementAt(id));
-            myBoard.ExecuteMove(myBoard.LegalMoves[id]);
+            BoardState newB = myBoard.Successor(id);
+            CannonUtils.printBoard(newB);
+
+            return newB;
         }
         private int readActionId()
         {

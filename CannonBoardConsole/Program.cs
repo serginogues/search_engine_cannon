@@ -18,62 +18,30 @@ namespace CannonBoardConsole
             PlayGame();
         }
 
-        static void PlayGame(bool manual=false)
+        /// <param name="AIblack">if true, AI plays for dark pieces</param>
+        static void PlayGame(bool aiDark = true)
         {
+            // root node
             myBoard = new BoardState();
+            myBoard.root_init();
+            CannonUtils.printBoard(myBoard);
 
-            if (manual)
+            // init users
+            ManualUser user = new ManualUser();
+            myBoard.AddTown(5, myBoard.Friend);
+            AISearchEngine ai = new AISearchEngine();
+            myBoard.AddTown(4, myBoard.Friend); 
+
+            // Play game
+            for (int two_turns = 0; two_turns < 1000; two_turns++)
             {
-                // Set Towns
-                ManualUser user = new ManualUser();
-                user.SetTowns(myBoard);
+                // dark user leads
+                myBoard = aiDark ? ai.Search(myBoard, aiDark, 5) : user.MakeMove(myBoard);
 
-                // Play game
-                for (int i = 0; i < 100; i++)
-                {
-                    user.MakeMove(myBoard);
-                }
-            }
-            else
-            {
-                AIUser user = new AIUser();
-                user.SetTowns(myBoard);
-
-                // Play game
-                for (int i = 0; i < 100; i++)
-                {
-                    user.MakeMove(myBoard);
-                }
+                // light user follows
+                myBoard = aiDark ? user.MakeMove(myBoard) : ai.Search(myBoard, aiDark, 5);
             }
         }
 
-        static void TTTest()
-        {
-            BoardState a = new BoardState();
-            TranspositionTable TT = new TranspositionTable(a);
-            //a.State.printBoard();
-            Console.WriteLine("Key a = " + TT.hashFunction(TT.zobristHashWithOperations(a)));
-            BoardState b = a.Successor(0);
-            //b.State.printBoard();
-            Console.WriteLine("Key b = " + TT.hashFunction(TT.zobristHashWithOperations(b)));
-            Console.WriteLine("Key b by operation = " + TT.hashFunction(TT.zobristHash(b)));
-            TT.Store(a, 0, 5, AIUtils.ITTEntryFlag.exact_value, 1);
-            TT.Store(b, 0, 5, AIUtils.ITTEntryFlag.exact_value, 1);
-            Entry n = TT.TableLookup(b);
-            Console.WriteLine(TT.hashFunction(n.zobristHashKey));
-            Console.ReadLine();
-        }
-
-        static void BitArrayTest()
-        {
-            BitArray a = new BitArray(new int[] { 14 });
-            BitArray b = new BitArray(new int[] { 11 });
-            BitArray c = a.Xor(b); // 5
-            BitArray d = b.Xor(a); // 14
-            Console.WriteLine(AIUtils.getIntFromBitArray(c));
-            Console.WriteLine(AIUtils.getIntFromBitArray(d));
-            Console.WriteLine(d == b); // True
-            Console.ReadLine();
-        }
     }
 }

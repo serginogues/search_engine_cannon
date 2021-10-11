@@ -3,6 +3,7 @@ using CannonModel;
 using System.Linq;
 using System.Collections.Generic;
 using System.Collections;
+using System.Diagnostics;
 
 namespace SearchEngine
 {
@@ -16,29 +17,100 @@ namespace SearchEngine
     /// Depth = 3, Nodes evaluated: 69737. In 726 [ms].
     /// Depth = 4, Nodes evaluated: 2885028. In 26914 [ms]
     /// </summary>
-    public class SearchEngine
+    public class AISearchEngine
     {
         /// <summary>
         /// Transposition table
         /// </summary>
-        public TranspositionTable myTT { get; set; }
-        public int nodesEvaluated { get; set; }
-        public int prunnings { get; set; }
-        public int type1e { get; set; }
+        private TranspositionTable myTT { get; set; }
+        private bool IsDarkSoldiers { get; set; }
+        private int Depth { get; set; }
 
-        public SearchEngine(BoardState root) 
+        public static Random rand { get; set; }
+
+        #region counters
+        private int nodesEvaluated { get; set; }
+        private int prunnings { get; set; }
+        private int type1e { get; set; }
+        #endregion
+
+        public BoardState Search(BoardState root, bool isDarkSoldiers, int depth)
         {
+            rand = new Random();
+            Console.WriteLine();
+            Console.WriteLine("SEARCH ENGINE TURN");
+
             myTT = new TranspositionTable(root);
+            IsDarkSoldiers = isDarkSoldiers;
+            Depth = depth;
             nodesEvaluated = 0;
             prunnings = 0;
             type1e = 0;
+
+            Stopwatch stopWatch = new Stopwatch();
+            stopWatch.Start();
+
+            int[] values = new int[2];
+            // Iterative-deepening
+            for (int d = 1; d <= Depth; d++)
+            {
+                values = AlphaBetaWithTT(root, -1000000, 100000, d);
+
+                //searchEngine.myTT.ResetAllAncientFlags();
+
+                var elapsed = stopWatch.ElapsedMilliseconds;
+                Console.WriteLine("Depth = " + d +
+                    ", Nodes Evaluated = " + nodesEvaluated +
+                    " in " + elapsed.ToString() + "[ms]" +
+                    ", prunnings = " + prunnings +
+                    ", type-1 errors = " + type1e +
+                    ", TT entries = " + myTT.TT.ToList().Where(x => x != null).ToList().Count);
+            }
+            int bestValue = values[0];
+            int bestMove = values[1];
+
+            CannonUtils.printMove(root.LegalMoves[bestMove], bestMove);
+
+            return root.Successor(bestMove);
+        }
+
+        /// <summary>
+        /// Evaluate State
+        /// Material:   value = w1*f1(s) + w2*f2(s) + ....
+        ///             where e.g. w3 = 9 and f3(s) = # soldiers (friend) 3 steps from oponent town - soldiers (enemy) 3 steps from oponent town
+        /// Mobility:   value = # moves (friend) - # moves (enemy)
+        /// EVALUATE RETURNS [this.Value] which is calculated at every 
+        /// </summary>
+        public int Evaluate(BoardState s)
+        {
+            int n_friends = 0;
+            int n_enemies = 0;
+            foreach (Cell soldier in s.SoldierList)
+            {
+                if (soldier.Piece == CannonUtils.ISoldiers.dark_soldier)
+                {
+                    // Friend is dark
+                    // Enemy is light
+                    if(IsDarkSoldiers) { n_friends++; }
+                    else { n_enemies++; }
+                }
+                else if (soldier.Piece == CannonUtils.ISoldiers.light_soldier)
+                {
+                    // Friend is light
+                    // Enemy is dark
+                    if (IsDarkSoldiers) { n_enemies++; }
+                    else { n_friends++; }
+                }
+            }
+            int evaluation = (n_friends - n_enemies) * 100;
+            return -evaluation;
         }
 
         /// <summary>
         /// Decision algorithm to find the best move given current state of the board
         /// Call: AlphaBetaWithTT(s, -inf, inf, depth)
         /// </summary>
-        public int AlphaBetaWithTT(BoardState s, int alpha, int beta, int depth)
+        private int[] AlphaBetaWithTT(BoardState s, int alpha, int beta, int depth)
         {
             // save original alpha value
             int olda = alpha;
@@ -51,18 +123,28 @@ namespace SearchEngine
             {
                 // [n] is deeper than current depth or the same (means it is more interesting than current depth)
 
-                if (n.Flag == AIUtils.ITTEntryFlag.exact_value)  { return n.Score;  }
+                if (n.Flag == AIUtils.ITTEntryFlag.exact_value) { return new int[] { n.Score, n.BestMove }; }
                 else if (n.Flag == AIUtils.ITTEntryFlag.lower_bound) { alpha = n.Score > alpha ? n.Score : alpha; }
                 else if (n.Flag == AIUtils.ITTEntryFlag.upper_bound) { beta = n.Score < beta ? n.Score : beta; }
-                if (alpha >= beta) 
+                if (alpha >= beta)
                 {
                     prunnings++;
-                    return n.Score; 
-                }                
+                    return new int[] { n.Score, n.BestMove };
+                }
             }
 
             // Check if terminal node
-            if (depth == 0 || s.TerminalState()) { return s.Evaluate(); }
+            if (depth == 0)
+            {
+                // leaf node
+                return new int[] { Evaluate(s), 0 };
+            }
+            else if (s.TerminalState != CannonUtils.INode.leaf)
+            {
+                // terminal node
+                // TODO
+                return new int[] { Evaluate(s), 0 };
+            }
 
             // We could not cut-off so we need to investigate deeper
 
@@ -80,9 +162,8 @@ namespace SearchEngine
                 try
                 {
                     // First iteration with bestMove
-                    //child_list.RemoveAt(bestMove);
-                    //child_list.Insert(0, bestMove);
-                    result = -AlphaBetaWithTT(s.Successor(bestMove), -beta, -alpha, depth - 1);
+                    result = -AlphaBetaWithTT(s.Successor(bestMove), -beta, -alpha, depth - 1)[0];
+
                 }
                 catch (Exception)
                 {
@@ -101,7 +182,7 @@ namespace SearchEngine
                     {
                         if (child != bestMove)
                         {
-                            result = -AlphaBetaWithTT(s.Successor(child), -beta, -alpha, depth - 1);
+                            result = -AlphaBetaWithTT(s.Successor(child), -beta, -alpha, depth - 1)[0];
                             if (result > bestValue)
                             {
                                 bestValue = result;
@@ -123,7 +204,7 @@ namespace SearchEngine
                 // Regular alpha-beta search algorithm
                 for (int child = 0; child < s.LegalMoves.Count; child++)
                 {
-                    int result = -AlphaBetaWithTT(s.Successor(child), -beta, -alpha, depth - 1);
+                    int result = -AlphaBetaWithTT(s.Successor(child), -beta, -alpha, depth - 1)[0];
                     if (result > bestValue)
                     {
                         bestValue = result;
@@ -135,8 +216,12 @@ namespace SearchEngine
                         prunnings++;
                         break;
                     }
+                    //if (depth == Depth)
+                    //{
+                    //    CannonUtils.printMove(s.LegalMoves[child], child);
+                    //    Console.WriteLine("                                             value = " + result);
+                    //}
                 }
-
             }
 
             // Traditional transposition table storing of bounds
@@ -157,32 +242,13 @@ namespace SearchEngine
                 myTT.Update(bestMove, bestValue, flag, depth, n.zobristHashKey);
             }
 
-            return bestValue;           
+            return new int[] { bestValue, bestMove };
         }
 
-        public int AlphaBeta(BoardState s, int alpha, int beta, int depth)
+        public void SetTowns(BoardState myBoard, bool auto = true)
         {
-
-            // leaf node?
-            if (depth == 0 || s.TerminalState())
-            {
-                return s.Evaluate();
-            }
-
-            int bestValue = -100000000;
-            int bestMove = 0;
-            for (int child = 0; child < s.LegalMoves.Count; child++)
-            {
-                int result = -AlphaBeta(s.Successor(child), -beta, -alpha, depth - 1);
-                if (result > bestValue)
-                {
-                    bestValue = result;
-                    bestMove = child;
-                }
-                if (bestValue > alpha) { alpha = bestValue; }
-                if (bestValue >= beta) { break; }
-            }
-            return bestValue;
+            myBoard.AddTown(5, myBoard.Friend);
+            myBoard.AddTown(4, myBoard.Friend);
         }
     }
 }
