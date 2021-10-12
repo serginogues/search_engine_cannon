@@ -9,10 +9,13 @@ namespace SearchEngine
 {
     public static class AIUtils
     {
-        public enum IType
+        /// <summary>
+        /// Evaluation function type
+        /// </summary>
+        public enum IEval
         {
-            MAX,
-            MIN
+            byTypeAndRow,
+            byType
         }
 
         public enum ITTEntryFlag

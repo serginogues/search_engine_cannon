@@ -67,10 +67,10 @@ namespace CannonModel
         public enum IMoves
         {
             none,
-            step,
             retreat,
-            capture,
+            step,
             slideCannon,
+            capture,
             shootCannon
         }
 
@@ -88,7 +88,7 @@ namespace CannonModel
         public static readonly int[] RowDarkSoldiers = { 1, 2, 3 };
 
         #region printMethods
-        public static void printBoard(BoardState s)
+        public static void printBoard(BoardState s, bool printNumbers = true)
         {
             string[] columnChar = { "A", "B", "C", "D", "E", "F", "G", "H", "I", "J" };
             Console.WriteLine("Counter:" + s.TurnCounter);
@@ -109,14 +109,25 @@ namespace CannonModel
                     {
                         // Light soldiers turn (p2)
                         if (c.Piece == CannonUtils.ISoldiers.dark_soldier) { Console.Write("X"); }
-                        else if (c.Piece == CannonUtils.ISoldiers.light_soldier) { Console.Write(counter); counter++; }
+                        else if (c.Piece == CannonUtils.ISoldiers.light_soldier) 
+                        {
+                            if (printNumbers) { Console.Write(counter); counter++; }
+                            else { Console.Write("O"); }
+                            
+                        
+                        }
                         else if (c.Piece == CannonUtils.ISoldiers.dark_town || c.Piece == CannonUtils.ISoldiers.light_town) { Console.Write("T"); }
                         else if (c.Piece == CannonUtils.ISoldiers.empty) { Console.Write("·"); }
 
                     }
                     else
                     {
-                        if (c.Piece == CannonUtils.ISoldiers.dark_soldier) { Console.Write(counter); counter++; }
+                        if (c.Piece == CannonUtils.ISoldiers.dark_soldier) 
+                        {
+                            if (printNumbers) { Console.Write(counter); counter++; }
+                            else { Console.Write("X"); }
+                             
+                        }
                         else if (c.Piece == CannonUtils.ISoldiers.light_soldier) { Console.Write("O"); }
                         else if (c.Piece == CannonUtils.ISoldiers.dark_town || c.Piece == CannonUtils.ISoldiers.light_town) { Console.Write("T"); }
                         else if (c.Piece == CannonUtils.ISoldiers.empty) { Console.Write("·"); }

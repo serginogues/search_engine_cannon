@@ -28,24 +28,24 @@ namespace SearchEngine
 
         public static Random rand { get; set; }
 
+        public AIUtils.IEval eval_f { get; set; }
+
         #region counters
         private int nodesEvaluated { get; set; }
         private int prunnings { get; set; }
-        private int type1e { get; set; }
         #endregion
 
-        public BoardState Search(BoardState root, bool isDarkSoldiers, int depth)
+        public BoardState Search(BoardState root, bool isDarkSoldiers, int depth, AIUtils.IEval f)
         {
             rand = new Random();
             Console.WriteLine();
-            Console.WriteLine("SEARCH ENGINE TURN");
 
             myTT = new TranspositionTable(root);
             IsDarkSoldiers = isDarkSoldiers;
             Depth = depth;
-            nodesEvaluated = 0;
-            prunnings = 0;
-            type1e = 0;
+            eval_f = f;
+            if (IsDarkSoldiers) { Console.WriteLine("DARK AI's TURN"); }
+            else { Console.WriteLine("LIGHT AI's TURN"); }
 
             Stopwatch stopWatch = new Stopwatch();
             stopWatch.Start();
@@ -54,24 +54,26 @@ namespace SearchEngine
             // Iterative-deepening
             for (int d = 1; d <= Depth; d++)
             {
+                nodesEvaluated = 0;
+                prunnings = 0;
                 values = AlphaBetaWithTT(root, -1000000, 100000, d);
 
                 //searchEngine.myTT.ResetAllAncientFlags();
 
                 var elapsed = stopWatch.ElapsedMilliseconds;
-                Console.WriteLine("Depth = " + d +
-                    ", Nodes Evaluated = " + nodesEvaluated +
-                    " in " + elapsed.ToString() + "[ms]" +
-                    ", prunnings = " + prunnings +
-                    ", type-1 errors = " + type1e +
-                    ", TT entries = " + myTT.TT.ToList().Where(x => x != null).ToList().Count);
+                //Console.WriteLine("Depth = " + d +
+                //    ", Nodes Evaluated = " + nodesEvaluated +
+                //    " in " + elapsed.ToString() + "[ms]" +
+                //    ", prunnings = " + prunnings +
+                //    ", TT entries = " + myTT.TT.ToList().Where(x => x != null).ToList().Count);
             }
             int bestValue = values[0];
             int bestMove = values[1];
 
             CannonUtils.printMove(root.LegalMoves[bestMove], bestMove);
+            BoardState new_s = root.Successor(bestMove);
 
-            return root.Successor(bestMove);
+            return new_s;
         }
 
         /// <summary>
@@ -83,27 +85,74 @@ namespace SearchEngine
         /// </summary>
         public int Evaluate(BoardState s)
         {
-            int n_friends = 0;
-            int n_enemies = 0;
+            int evaluation = 0;
+            // if(IsDarkSoldiers) then Friend is dark and Enemy is light
+
             foreach (Cell soldier in s.SoldierList)
             {
-                if (soldier.Piece == CannonUtils.ISoldiers.dark_soldier)
+                switch(eval_f)
                 {
-                    // Friend is dark
-                    // Enemy is light
-                    if(IsDarkSoldiers) { n_friends++; }
-                    else { n_enemies++; }
+                    case AIUtils.IEval.byTypeAndRow:
+                        evaluation = evaluation + evalByTypeAndRow(soldier);
+                        break;
+                    case AIUtils.IEval.byType:
+                        evaluation = evaluation + evalByType(soldier);
+                        break;
                 }
-                else if (soldier.Piece == CannonUtils.ISoldiers.light_soldier)
-                {
-                    // Friend is light
-                    // Enemy is dark
-                    if (IsDarkSoldiers) { n_enemies++; }
-                    else { n_friends++; }
-                }
+                
             }
-            int evaluation = (n_friends - n_enemies) * 100;
             return -evaluation;
+        }
+
+        /// <summary>
+        /// evaluate soldier based on its color
+        /// </summary>
+        private int evalByType(Cell soldier)
+        {
+            int score = 10;
+            if (soldier.Piece == CannonUtils.ISoldiers.dark_soldier)
+            {
+                return IsDarkSoldiers ? score : -score;
+            }
+            else if (soldier.Piece == CannonUtils.ISoldiers.light_soldier)
+            {
+                return IsDarkSoldiers ? -score : score;
+            }
+            else { return score; }
+        }
+
+        /// <summary>
+        /// evaluate soldier based on its current row distance from enemy town
+        /// </summary>
+        private int evalByTypeAndRow(Cell soldier)
+        {
+            int w_2 = 100; // pieces that are 2 rows away from enemy town
+            int w_4 = 70; // pieces that are 4 rows away from enemy town
+            int w_6 = 50; // pieces that are 6 rows away from enemy town
+            int w_9 = 10; // pieces that are 8 to 10 rows away from enemy town
+
+            int score = 0;
+            if (soldier.Piece == CannonUtils.ISoldiers.dark_soldier)
+            {
+                if(soldier.Row > 6) { score = w_2; }
+                else if (soldier.Row > 4) { score = w_4; }
+                else if (soldier.Row > 2) { score = w_6; }
+                else { score = w_9; }
+                return IsDarkSoldiers ? score : -score;
+            }
+            else if (soldier.Piece == CannonUtils.ISoldiers.light_soldier)
+            {
+                if (soldier.Row < 3) { score = w_2; }
+                else if (soldier.Row < 5) { score = w_4; }
+                else if (soldier.Row < 7) { score = w_6; }
+                else { score = w_9; }
+
+                return IsDarkSoldiers ? -score : score;
+            }
+            else
+            {
+                return w_9;
+            } 
         }
 
         /// <summary>
@@ -134,44 +183,32 @@ namespace SearchEngine
             }
 
             // Check if terminal node
-            if (depth == 0)
+            // leaf node
+            if (depth == 0) { return new int[] { Evaluate(s), 0 }; }
+            // terminal node - TODO
+            else if (s.TerminalState != CannonUtils.INode.leaf) 
             {
-                // leaf node
-                return new int[] { Evaluate(s), 0 };
-            }
-            else if (s.TerminalState != CannonUtils.INode.leaf)
-            {
-                // terminal node
-                // TODO
-                return new int[] { Evaluate(s), 0 };
+                return new int[] { terminalNodeScore(s.TerminalState), 0 };
             }
 
             // We could not cut-off so we need to investigate deeper
 
             int bestValue = -100000000;
             int bestMove = 0;
+            int result = bestValue;
             //List<int> child_list = Enumerable.Range(0, s.LegalMoves.Count).ToList();
 
-            if (n.Depth >= depth)
+            if (n.Depth != -1)
             {
                 // if the TT does not give a cutoff, we play the best move as first
                 bestValue = n.Score;
                 bestMove = n.BestMove;
-                int result = 0;
+
                 // Do move ordering with child list
-                try
-                {
-                    // First iteration with bestMove
-                    result = -AlphaBetaWithTT(s.Successor(bestMove), -beta, -alpha, depth - 1)[0];
-
-                }
-                catch (Exception)
-                {
-                    // Type-1 error 
-                    // ignore it
-                    type1e++;
-                }
-
+                // First iteration with bestMove
+                // If type-1 error ignore it
+                try { result = -AlphaBetaWithTT(s.Successor(bestMove), -beta, -alpha, depth - 1)[0]; }
+                catch (Exception) { }
                 if (result > bestValue) { bestValue = result; }
                 if (bestValue > alpha) { alpha = bestValue; }
                 if (bestValue >= beta) { prunnings++; }
@@ -187,6 +224,11 @@ namespace SearchEngine
                             {
                                 bestValue = result;
                                 bestMove = child;
+                                //if (depth == Depth)
+                                //{
+                                //    CannonUtils.printMove(s.LegalMoves[child], child);
+                                //    Console.WriteLine("                                             value = " + result);
+                                //}
                             }
                             if (bestValue > alpha) { alpha = bestValue; }
                             if (bestValue >= beta)
@@ -204,23 +246,23 @@ namespace SearchEngine
                 // Regular alpha-beta search algorithm
                 for (int child = 0; child < s.LegalMoves.Count; child++)
                 {
-                    int result = -AlphaBetaWithTT(s.Successor(child), -beta, -alpha, depth - 1)[0];
+                    result = -AlphaBetaWithTT(s.Successor(child), -beta, -alpha, depth - 1)[0];
                     if (result > bestValue)
                     {
                         bestValue = result;
                         bestMove = child;
+                        //if (depth == Depth)
+                        //{
+                        //    CannonUtils.printMove(s.LegalMoves[child], child);
+                        //    Console.WriteLine("                                             value = " + result);
+                        //}
                     }
                     if (bestValue > alpha) { alpha = bestValue; }
                     if (bestValue >= beta)
                     {
                         prunnings++;
                         break;
-                    }
-                    //if (depth == Depth)
-                    //{
-                    //    CannonUtils.printMove(s.LegalMoves[child], child);
-                    //    Console.WriteLine("                                             value = " + result);
-                    //}
+                    }   
                 }
             }
 
@@ -243,6 +285,24 @@ namespace SearchEngine
             }
 
             return new int[] { bestValue, bestMove };
+        }
+
+        private int terminalNodeScore(CannonUtils.INode nodeType)
+        {
+            int score = 1000000;
+            if ((nodeType == CannonUtils.INode.dark_wins && IsDarkSoldiers) ||
+                (nodeType == CannonUtils.INode.light_wins && !IsDarkSoldiers))
+            {
+                // you win
+                return -score;
+            }
+            else if ((nodeType == CannonUtils.INode.light_wins && IsDarkSoldiers) || 
+                (nodeType == CannonUtils.INode.dark_wins && !IsDarkSoldiers))
+            {
+                // you loose
+                return score;
+            }
+            else { return score; }
         }
 
         public void SetTowns(BoardState myBoard, bool auto = true)

@@ -31,6 +31,7 @@ namespace CannonModel
         public Cell[,] Grid { get; set; }
         public List<Cell> SoldierList { get; set; }
         public List<Move> LegalMoves { get; set; }
+        public List<int> ReOrderedLegalMovesId { get; set; }
         /// <summary>
         /// List of moves from root to this state of the board
         /// </summary>
@@ -96,7 +97,7 @@ namespace CannonModel
             switch (move.Type)
             {
                 case CannonUtils.IMoves.shootCannon:
-                    TerminalMove(move);
+                    child.CheckIfTownsAlive(move);
                     child.Grid[move.NewCell.Row, move.NewCell.Column].Piece = CannonUtils.ISoldiers.empty;
                     break;
                 case CannonUtils.IMoves.step:
@@ -106,7 +107,7 @@ namespace CannonModel
                     child.Grid[move.OldCell.Row, move.OldCell.Column].Piece = CannonUtils.ISoldiers.empty;
                     break;
                 case CannonUtils.IMoves.capture:
-                    TerminalMove(move);
+                    child.CheckIfTownsAlive(move);
                     child.Grid[move.NewCell.Row, move.NewCell.Column].Piece = move.OldCell.Piece;
                     child.Grid[move.OldCell.Row, move.OldCell.Column].Piece = CannonUtils.ISoldiers.empty;
                     break;
@@ -118,6 +119,7 @@ namespace CannonModel
 
             // update LegalMoves
             child.initLegalMoves();
+            child.CheckIfLegalMovesAvailable();
 
             // TODO: check if child is terminal node
             return child;
@@ -134,6 +136,7 @@ namespace CannonModel
             other.History = new List<Move>(History);
             other.TurnCounter = TurnCounter;
             other.Grid = new Cell[CannonUtils.Size, CannonUtils.Size];
+            other.TerminalState = CannonUtils.INode.leaf;
             for (int i = 0; i < CannonUtils.Size; i++)
             {
                 for (int j = 0; j < CannonUtils.Size; j++)
@@ -144,17 +147,34 @@ namespace CannonModel
             return other;
         }
 
-        private void TerminalMove(Move move)
+        private void CheckIfTownsAlive(Move move)
         {
             if(move.NewCell.Piece == CannonUtils.ISoldiers.dark_town)
             {
                 // light wins
-                TerminalState = CannonUtils.INode.light_wins;
+                 TerminalState = CannonUtils.INode.light_wins;
             }
             else if (move.NewCell.Piece == CannonUtils.ISoldiers.light_town)
             {
                 // dark wins
                 TerminalState = CannonUtils.INode.dark_wins;
+            }
+        }
+
+        private void CheckIfLegalMovesAvailable()
+        {
+            if (LegalMoves.Count == 0)
+            {
+                if (Friend == CannonUtils.ISoldiers.dark_soldier)
+                {
+                    // dark loses
+                    TerminalState = CannonUtils.INode.light_wins;
+                }
+                else if (Friend == CannonUtils.ISoldiers.light_soldier)
+                {
+                    // light loses
+                    TerminalState = CannonUtils.INode.dark_wins;
+                }
             }
         }
         #endregion
@@ -181,6 +201,8 @@ namespace CannonModel
                     SetSHOOTS(soldier); 
                 }
             }
+            // reorder moves
+            LegalMoves = LegalMoves.OrderByDescending(o => (int)o.Type).ToList();
         }
         
         /// <param name="_column"> Column to be added the town </param>
