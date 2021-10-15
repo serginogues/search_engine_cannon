@@ -7,6 +7,24 @@ namespace CannonModel
 {
     public static class CannonUtils
     {
+        public static int ChebyshevDistance(Cell soldier, Cell town)
+        {
+            return Math.Abs(soldier.Row - soldier.Row) + Math.Abs(soldier.Column - soldier.Column);
+        }
+
+        public static bool compareMoves(Move a, Move b)
+        {
+            if (a != null && b != null &&
+                a.OldCell.Row == b.OldCell.Row &&
+                a.OldCell.Column == b.OldCell.Column &&
+                a.NewCell.Row == b.NewCell.Row &&
+                a.NewCell.Column == b.NewCell.Column &&
+                a.Type == b.Type)
+            {
+                return true;
+            }
+            else { return false; }
+        }
 
         public static bool IsOdd(int value)
         {
@@ -67,9 +85,9 @@ namespace CannonModel
         public enum IMoves
         {
             none,
-            retreat,
-            step,
             slideCannon,
+            step,
+            retreat,
             capture,
             shootCannon
         }
@@ -149,7 +167,6 @@ namespace CannonModel
             }
             Console.WriteLine();
             Console.WriteLine("Soldiers legend: X = Dark Soldier, O = Light Soldier, T = Town, · = empty cell");
-            Console.WriteLine("=================================");
 
         }
 
@@ -219,24 +236,59 @@ namespace CannonModel
 
         public static void printMove(Move move, int count)
         {
+            string oldrow = (move.OldCell.Row + 1).ToString();
+            string newrow = (move.NewCell.Row + 1).ToString();
+            string oldcol = intToColumn(move.OldCell.Column);
+            string newcol = intToColumn(move.NewCell.Column);
+            string oldc = oldcol + oldrow;
+            string newc = newcol + newrow;
+            string sentence = oldc + " to " + newc;
             switch (move.Type)
             {
                 case CannonUtils.IMoves.step:
-                    Console.WriteLine(count + "     - Soldier steps from (" + move.OldCell.Row + "," + move.OldCell.Column + ") to (" + move.NewCell.Row + "," + move.NewCell.Column + ")");
+                    Console.WriteLine(count + "     - STEP " + sentence);
                     break;
                 case CannonUtils.IMoves.capture:
-                    Console.WriteLine(count + "     - Soldier captures from (" + move.OldCell.Row + "," + move.OldCell.Column + ") to (" + move.NewCell.Row + "," + move.NewCell.Column + ")");
+                    Console.WriteLine(count + "     - CAPTURE " + sentence);
                     break;
                 case CannonUtils.IMoves.retreat:
-                    Console.WriteLine(count + "     - Soldier retreats from (" + move.OldCell.Row + "," + move.OldCell.Column + ") to (" + move.NewCell.Row + "," + move.NewCell.Column + ")");
+                    Console.WriteLine(count + "     - RETREAT " + sentence);
                     break;
                 case CannonUtils.IMoves.slideCannon:
-                    Console.WriteLine(count + "     - Soldier slides from (" + move.OldCell.Row + "," + move.OldCell.Column + ") to (" + move.NewCell.Row + "," + move.NewCell.Column + ")");
+                    Console.WriteLine(count + "     - SLIDE " + sentence);
                     break;
                 case CannonUtils.IMoves.shootCannon:
-                    Console.WriteLine(count + "     - Shoot soldier at cell (" + move.NewCell.Row + "," + move.NewCell.Column + ")");
+                    Console.WriteLine(count + "     - SHOOT at cell " + newc);
                     break;
             }
+        }
+
+        private static string intToColumn(int column)
+        {
+            switch (column)
+            {
+                case 0:
+                    return "A";
+                case 1:
+                    return "B";
+                case 2:
+                    return "C";
+                case 3:
+                    return "D";
+                case 4:
+                    return "E";
+                case 5:
+                    return "F";
+                case 6:
+                    return "G";
+                case 7:
+                    return "H";
+                case 8:
+                    return "I";
+                case 9:
+                    return "J";
+            }
+            return "bug";
         }
 
         public static void printNextPlayer(BoardState s)

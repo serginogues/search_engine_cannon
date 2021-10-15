@@ -14,8 +14,11 @@ namespace SearchEngine
         /// </summary>
         public enum IEval
         {
-            byTypeAndRow,
-            byType
+            colorAndRow,
+            color,
+            mobility,
+            safeMobility,
+            dist2EnemyTown
         }
 
         public enum ITTEntryFlag

@@ -40,6 +40,8 @@ namespace CannonModel
         /// if node is terminal node, then return its terminalNode value
         /// </summary>
         public CannonUtils.INode TerminalState { get; set; }
+        public Cell DarkTown { get; set; }
+        public Cell LightTown { get; set; } 
         #endregion
 
         #region Constructor (root node)
@@ -51,7 +53,7 @@ namespace CannonModel
             History = new List<Move>();
             TurnCounter = 0;
             initGrid();
-            initLegalMoves();
+            MoveOrderingLegalMoves();
             TerminalState = CannonUtils.INode.leaf;
         }
 
@@ -97,7 +99,7 @@ namespace CannonModel
             switch (move.Type)
             {
                 case CannonUtils.IMoves.shootCannon:
-                    child.CheckIfTownsAlive(move);
+                    child.IsTerminalMove(move);
                     child.Grid[move.NewCell.Row, move.NewCell.Column].Piece = CannonUtils.ISoldiers.empty;
                     break;
                 case CannonUtils.IMoves.step:
@@ -107,7 +109,7 @@ namespace CannonModel
                     child.Grid[move.OldCell.Row, move.OldCell.Column].Piece = CannonUtils.ISoldiers.empty;
                     break;
                 case CannonUtils.IMoves.capture:
-                    child.CheckIfTownsAlive(move);
+                    child.IsTerminalMove(move);
                     child.Grid[move.NewCell.Row, move.NewCell.Column].Piece = move.OldCell.Piece;
                     child.Grid[move.OldCell.Row, move.OldCell.Column].Piece = CannonUtils.ISoldiers.empty;
                     break;
@@ -118,8 +120,8 @@ namespace CannonModel
             child.TurnCounter++;
 
             // update LegalMoves
-            child.initLegalMoves();
-            child.CheckIfLegalMovesAvailable();
+            child.MoveOrderingLegalMoves();
+            child.LegalMovesLeft();
 
             // TODO: check if child is terminal node
             return child;
@@ -147,7 +149,7 @@ namespace CannonModel
             return other;
         }
 
-        private void CheckIfTownsAlive(Move move)
+        private void IsTerminalMove(Move move)
         {
             if(move.NewCell.Piece == CannonUtils.ISoldiers.dark_town)
             {
@@ -161,7 +163,7 @@ namespace CannonModel
             }
         }
 
-        private void CheckIfLegalMovesAvailable()
+        private void LegalMovesLeft()
         {
             if (LegalMoves.Count == 0)
             {
@@ -183,10 +185,12 @@ namespace CannonModel
         /// <summary>
         /// Reset AVAILABLE_MOVES and CURRENT_SOLDIER
         /// </summary>
-        public void initLegalMoves()
+        public void MoveOrderingLegalMoves()
         {
             SoldierList = new List<Cell>();
             LegalMoves = new List<Move>();
+
+            // fill LegalMoves list
             foreach (Cell soldier in Grid)
             {
                 if (soldier.Piece == Friend) 
@@ -201,16 +205,27 @@ namespace CannonModel
                     SetSHOOTS(soldier); 
                 }
             }
-            // reorder moves
+
+            // Move Ordering based on IMove enum type
             LegalMoves = LegalMoves.OrderByDescending(o => (int)o.Type).ToList();
+            //CannonUtils.printBoard(this);
+            //CannonUtils.printLegalMoves(LegalMoves);
         }
         
         /// <param name="_column"> Column to be added the town </param>
         /// <param name="_color"> True == Dark,  False == Light </param>
         public void AddTown(int _column, CannonUtils.ISoldiers _color)
         {
-            if (_color == CannonUtils.ISoldiers.dark_soldier) { Grid[0, _column].Piece = CannonUtils.ISoldiers.dark_town; }
-            else if (_color == CannonUtils.ISoldiers.light_soldier) { Grid[9, _column].Piece = CannonUtils.ISoldiers.light_town; }
+            if (_color == CannonUtils.ISoldiers.dark_soldier) 
+            { 
+                Grid[0, _column].Piece = CannonUtils.ISoldiers.dark_town;
+                DarkTown = Grid[0, _column];
+            }
+            else if (_color == CannonUtils.ISoldiers.light_soldier) 
+            { 
+                Grid[9, _column].Piece = CannonUtils.ISoldiers.light_town;
+                LightTown = Grid[9, _column];
+            }
             TurnCounter++;
         }
 
