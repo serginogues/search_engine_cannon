@@ -88,8 +88,8 @@ namespace CannonBoardConsole
             CannonUtils.printBoard(myBoard, false);
 
             // Init Players
-            AISearchEngine ai_dark = new AISearchEngine(AIUtils.IEval.safeMobility, 1);
-            AISearchEngine ai_light = new AISearchEngine(AIUtils.IEval.color, -1);
+            AISearchEngine ai_dark = new AISearchEngine(AIUtils.IEval.dist2EnemyTown, 1);
+            AISearchEngine ai_light = new AISearchEngine(AIUtils.IEval.safeMobility, -1);
 
             // add towns
             myBoard.AddTown(9, myBoard.Friend);

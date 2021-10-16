@@ -23,7 +23,7 @@ namespace SearchEngine
         private int Depth { get; set; }
         public static Random rand { get; set; }
         public AIUtils.IEval eval_f { get; set; }
-        private List<EvaluatedNode> moveEvaluationList { get; set; } 
+        //private List<EvaluatedNode> moveEvaluationList { get; set; } 
 
 
         #region counters
@@ -70,7 +70,7 @@ namespace SearchEngine
                     ", prunnings = " + prunnings +
                     ", TT entries = " + myTT.TT.ToList().Where(x => x != null).ToList().Count);
 
-                if (elapsed > 1000)
+                if (elapsed > 2000)
                 {
                     break;
                 }
@@ -78,9 +78,9 @@ namespace SearchEngine
             int bestValue = values[0];
             int bestMove = values[1];
             // DELETE
-            List<EvaluatedNode> newEvaluatedL = moveEvaluationList.OrderByDescending(x => x.value).ToList();
-            CannonUtils.printLegalMovesWithScore(newEvaluatedL.Select(x => x.move).ToList(), newEvaluatedL.Select(x => x.value).ToList());
-            Console.WriteLine("AI optimal move:");
+            //List<EvaluatedNode> newEvaluatedL = moveEvaluationList.OrderByDescending(x => x.value).ToList();
+            //CannonUtils.printLegalMovesWithScore(newEvaluatedL.Select(x => x.move).ToList(), newEvaluatedL.Select(x => x.value).ToList());
+            //Console.WriteLine("AI optimal move:");
             //--------
             CannonUtils.printMove(root.FriendLegalMoves[bestMove], bestMove);
             BoardState new_s = root.Successor(bestMove);
@@ -98,7 +98,7 @@ namespace SearchEngine
             int olda = alpha;
             nodesEvaluated++;
 
-            moveEvaluationList = new List<EvaluatedNode>();
+            //moveEvaluationList = new List<EvaluatedNode>();
 
             #region Transposition-table lookup
             Entry n = myTT.TableLookup(s);
@@ -159,11 +159,11 @@ namespace SearchEngine
 
             // if position is not found, n.depth will be -1
             // Regular alpha-beta search algorithm
-            List<EvaluatedNode> scoreList = new List<EvaluatedNode>();
+            //List<EvaluatedNode> scoreList = new List<EvaluatedNode>();
             foreach (int child in successor_list)
             {
                 int result = -AlphaBetaWithTT(s.Successor(child), -beta, -alpha, depth - 1, -color)[0];
-                scoreList.Add(new EvaluatedNode() {depth=depth, move=s.FriendLegalMoves[child], value=result });
+                //scoreList.Add(new EvaluatedNode() {depth=depth, move=s.FriendLegalMoves[child], value=result });
                 if (result > bestValue)
                 {
                     bestValue = result;
@@ -177,7 +177,7 @@ namespace SearchEngine
                     break;
                 }                
             }
-            moveEvaluationList = scoreList;
+            //moveEvaluationList = scoreList;
             // Traditional transposition table storing of bounds
             AIUtils.ITTEntryFlag flag = AIUtils.ITTEntryFlag.exact_value;
             // Fail-low result implies an upper bound
