@@ -18,11 +18,12 @@ namespace SearchEngine
         /// Transposition table
         /// </summary>
         private TranspositionTable myTT { get; set; }
-        private int[] KillerMoves { get; set; }
+        private int[] KillerMoveList { get; set; }
         private int Color { get; set; }
         private int Depth { get; set; }
         public static Random rand { get; set; }
         public AIUtils.IEval eval_f { get; set; }
+        private List<EvaluatedNode> moveEvaluationList { get; set; } 
 
 
         #region counters
@@ -69,15 +70,19 @@ namespace SearchEngine
                     ", prunnings = " + prunnings +
                     ", TT entries = " + myTT.TT.ToList().Where(x => x != null).ToList().Count);
 
-                if (elapsed > 3000)
+                if (elapsed > 1000)
                 {
                     break;
                 }
             }
             int bestValue = values[0];
             int bestMove = values[1];
-
-            CannonUtils.printMove(root.LegalMoves[bestMove], bestMove);
+            // DELETE
+            List<EvaluatedNode> newEvaluatedL = moveEvaluationList.OrderByDescending(x => x.value).ToList();
+            CannonUtils.printLegalMovesWithScore(newEvaluatedL.Select(x => x.move).ToList(), newEvaluatedL.Select(x => x.value).ToList());
+            Console.WriteLine("AI optimal move:");
+            //--------
+            CannonUtils.printMove(root.FriendLegalMoves[bestMove], bestMove);
             BoardState new_s = root.Successor(bestMove);
 
             return new_s;
@@ -92,6 +97,8 @@ namespace SearchEngine
             // save original alpha value
             int olda = alpha;
             nodesEvaluated++;
+
+            moveEvaluationList = new List<EvaluatedNode>();
 
             #region Transposition-table lookup
             Entry n = myTT.TableLookup(s);
@@ -129,7 +136,7 @@ namespace SearchEngine
             int bestValue = -100000000;
             int bestMove = 0;
 
-            int n_moves = s.LegalMoves.Count;
+            int n_moves = s.FriendLegalMoves.Count;
             List<int> successor_list = Enumerable.Range(0, n_moves).ToList();
 
             #region Killer Heuristics
@@ -152,10 +159,11 @@ namespace SearchEngine
 
             // if position is not found, n.depth will be -1
             // Regular alpha-beta search algorithm
-
+            List<EvaluatedNode> scoreList = new List<EvaluatedNode>();
             foreach (int child in successor_list)
             {
                 int result = -AlphaBetaWithTT(s.Successor(child), -beta, -alpha, depth - 1, -color)[0];
+                scoreList.Add(new EvaluatedNode() {depth=depth, move=s.FriendLegalMoves[child], value=result });
                 if (result > bestValue)
                 {
                     bestValue = result;
@@ -167,9 +175,9 @@ namespace SearchEngine
                     // KillerMoves[depth] = bestValue;
                     prunnings++;
                     break;
-                }
+                }                
             }
-
+            moveEvaluationList = scoreList;
             // Traditional transposition table storing of bounds
             AIUtils.ITTEntryFlag flag = AIUtils.ITTEntryFlag.exact_value;
             // Fail-low result implies an upper bound
@@ -178,7 +186,7 @@ namespace SearchEngine
             else if (bestValue >= beta) { flag = AIUtils.ITTEntryFlag.lower_bound; }
 
             // store information in the TT
-            myTT.Store(s, bestMove, bestValue, flag, depth);
+            myTT.Store(s, bestMove, bestValue, flag, depth);            
 
             return new int[] { bestValue, bestMove };
         }
@@ -197,6 +205,8 @@ namespace SearchEngine
                     return Evaluation.evalByTypeAndDistanceToTown(s);
                 case AIUtils.IEval.mobility:
                     return Evaluation.mobility(s);
+                case AIUtils.IEval.safeMobility:
+                    return Evaluation.safe_mobility(s);
             }
             return 0;
         }
@@ -206,5 +216,12 @@ namespace SearchEngine
             myBoard.AddTown(5, myBoard.Friend);
             myBoard.AddTown(4, myBoard.Friend);
         }
+    }
+
+    public class EvaluatedNode
+    {
+        public Move move { get; set; }
+        public int value { get; set; }
+        public int depth { get; set; }
     }
 }

@@ -29,6 +29,8 @@ namespace CannonBoardConsole
             PlayAIvsAI();
         }
 
+        public const int Depth = 30;
+
         /// <summary>
         /// color = 1 -> dark
         /// </summary>
@@ -42,9 +44,8 @@ namespace CannonBoardConsole
             // init users
             ManualUser user = new ManualUser();
             myBoard.AddTown(4, myBoard.Friend);
-            AISearchEngine ai = new AISearchEngine(AIUtils.IEval.color, -1);
+            AISearchEngine ai = new AISearchEngine(AIUtils.IEval.dist2EnemyTown, 1);
             myBoard.AddTown(4, myBoard.Friend);
-            int depth = 5;
 
             Console.WriteLine("Evaluation root node = "+ ai.Evaluate(myBoard));
 
@@ -52,7 +53,7 @@ namespace CannonBoardConsole
             for (int two_turns = 0; two_turns < 1000; two_turns++)
             {
                 // dark user leads
-                myBoard = color == 1 ? ai.Search(myBoard, depth) : user.MakeMove(myBoard);
+                myBoard = color == 1 ? ai.Search(myBoard, Depth) : user.MakeMove(myBoard);
 
                 if (myBoard.TerminalState != CannonUtils.INode.leaf)
                 {
@@ -62,7 +63,7 @@ namespace CannonBoardConsole
                 }
 
                 // light user follows
-                myBoard = color == 1 ? user.MakeMove(myBoard) : ai.Search(myBoard, depth);
+                myBoard = color == 1 ? user.MakeMove(myBoard) : ai.Search(myBoard, Depth);
 
                 if (myBoard.TerminalState != CannonUtils.INode.leaf)
                 {
@@ -87,15 +88,12 @@ namespace CannonBoardConsole
             CannonUtils.printBoard(myBoard, false);
 
             // Init Players
-            AISearchEngine ai_dark = new AISearchEngine(AIUtils.IEval.color, 1);
-            AISearchEngine ai_light = new AISearchEngine(AIUtils.IEval.mobility, -1);
+            AISearchEngine ai_dark = new AISearchEngine(AIUtils.IEval.safeMobility, 1);
+            AISearchEngine ai_light = new AISearchEngine(AIUtils.IEval.color, -1);
 
             // add towns
             myBoard.AddTown(9, myBoard.Friend);
             myBoard.AddTown(0, myBoard.Friend);
-
-            // search depth
-            int depth = 20;
 
             Console.WriteLine("Evaluation root node = " + ai_dark.Evaluate(myBoard));
 
@@ -103,9 +101,9 @@ namespace CannonBoardConsole
             for (int two_turns = 0; two_turns < 1000; two_turns++)
             {
                 // dark user leads
-                Console.WriteLine("================================= Turn for Dark");
                 CannonUtils.printBoard(myBoard, false);
-                myBoard = ai_dark.Search(myBoard, depth);
+                Console.WriteLine("================================= Turn for Dark");
+                myBoard = ai_dark.Search(myBoard, Depth);
 
                 if (myBoard.TerminalState != CannonUtils.INode.leaf)
                 {
@@ -115,9 +113,9 @@ namespace CannonBoardConsole
                 }
 
                 // light user follows
-                Console.WriteLine("================================= Turn for Light");
                 CannonUtils.printBoard(myBoard, false);
-                myBoard = ai_light.Search(myBoard, depth);
+                Console.WriteLine("================================= Turn for Light");
+                myBoard = ai_light.Search(myBoard, Depth);
 
                 if (myBoard.TerminalState != CannonUtils.INode.leaf)
                 {

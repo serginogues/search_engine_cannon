@@ -53,12 +53,12 @@ namespace CannonModel
                     }
                 }
             }
-            List<Move> moves = myBoard.LegalMoves.Where(x => x.OldCell.Row == cell.Row && x.OldCell.Column == cell.Column).ToList();
+            List<Move> moves = myBoard.FriendLegalMoves.Where(x => x.OldCell.Row == cell.Row && x.OldCell.Column == cell.Column).ToList();
             CannonUtils.printLegalMoves(moves);
 
             Console.WriteLine("Choose a move");
             id = readActionId();
-            id = myBoard.LegalMoves.IndexOf(moves.ElementAt(id));
+            id = myBoard.FriendLegalMoves.IndexOf(moves.ElementAt(id));
             BoardState newB = myBoard.Successor(id);
             CannonUtils.printBoard(newB);
 
@@ -72,7 +72,7 @@ namespace CannonModel
 
         private void printShoots(BoardState myBoard)
         {
-            foreach (Move item in myBoard.LegalMoves)
+            foreach (Move item in myBoard.FriendLegalMoves)
             {
                 if(item.Type == CannonUtils.IMoves.shootCannon)
                 {

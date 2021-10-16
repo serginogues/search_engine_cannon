@@ -30,8 +30,7 @@ namespace CannonModel
         public int TurnCounter { get; set; }
         public Cell[,] Grid { get; set; }
         public List<Cell> SoldierList { get; set; }
-        public List<Move> LegalMoves { get; set; }
-        public List<int> ReOrderedLegalMovesId { get; set; }
+        public List<Move> FriendLegalMoves { get; set; }
         /// <summary>
         /// List of moves from root to this state of the board
         /// </summary>
@@ -53,7 +52,7 @@ namespace CannonModel
             History = new List<Move>();
             TurnCounter = 0;
             initGrid();
-            MoveOrderingLegalMoves();
+            initLegalMoves();
             TerminalState = CannonUtils.INode.leaf;
         }
 
@@ -95,7 +94,7 @@ namespace CannonModel
             BoardState child = DeepCopy();
 
             // move soldiers in [child] based on [move_id]
-            Move move = child.LegalMoves[move_id];
+            Move move = child.FriendLegalMoves[move_id];
             switch (move.Type)
             {
                 case CannonUtils.IMoves.shootCannon:
@@ -120,7 +119,7 @@ namespace CannonModel
             child.TurnCounter++;
 
             // update LegalMoves
-            child.MoveOrderingLegalMoves();
+            child.initLegalMoves();
             child.LegalMovesLeft();
 
             // TODO: check if child is terminal node
@@ -134,7 +133,7 @@ namespace CannonModel
         public BoardState DeepCopy()
         {
             BoardState other = (BoardState)this.MemberwiseClone();
-            other.LegalMoves = new List<Move>(LegalMoves);
+            other.FriendLegalMoves = new List<Move>(FriendLegalMoves);
             other.History = new List<Move>(History);
             other.TurnCounter = TurnCounter;
             other.Grid = new Cell[CannonUtils.Size, CannonUtils.Size];
@@ -165,7 +164,7 @@ namespace CannonModel
 
         private void LegalMovesLeft()
         {
-            if (LegalMoves.Count == 0)
+            if (FriendLegalMoves.Count == 0)
             {
                 if (Friend == CannonUtils.ISoldiers.dark_soldier)
                 {
@@ -185,10 +184,10 @@ namespace CannonModel
         /// <summary>
         /// Reset AVAILABLE_MOVES and CURRENT_SOLDIER
         /// </summary>
-        public void MoveOrderingLegalMoves()
+        public void initLegalMoves()
         {
             SoldierList = new List<Cell>();
-            LegalMoves = new List<Move>();
+            FriendLegalMoves = new List<Move>();
 
             // fill LegalMoves list
             foreach (Cell soldier in Grid)
@@ -196,20 +195,18 @@ namespace CannonModel
                 if (soldier.Piece == Friend) 
                 {
                     SoldierList.Add(soldier);
-                    SetSTEP_CAPTURE_RETREATMoves(soldier);
-                    SetCANNONMoves(soldier);
+                    stepCaptureRetreatMoves(soldier);
+                    slideMoves(soldier);
                 }
                 else if (soldier.Piece == Enemy || soldier.Piece == TownEnemy) 
                 {
                     SoldierList.Add(soldier);
-                    SetSHOOTS(soldier); 
+                    shootMoves(soldier); 
                 }
             }
 
             // Move Ordering based on IMove enum type
-            LegalMoves = LegalMoves.OrderByDescending(o => (int)o.Type).ToList();
-            //CannonUtils.printBoard(this);
-            //CannonUtils.printLegalMoves(LegalMoves);
+            FriendLegalMoves = FriendLegalMoves.OrderByDescending(o => (int)o.Type).ToList();
         }
         
         /// <param name="_column"> Column to be added the town </param>
@@ -234,7 +231,7 @@ namespace CannonModel
         /// A soldier may CAPTURE an enemy piece (a soldier or the Town) standing on an adjacent point 
         /// by moving one step sideways, forward or diagonally forward
         /// </summary>
-        private void SetSTEP_CAPTURE_RETREATMoves(Cell soldier)
+        private void stepCaptureRetreatMoves(Cell soldier)
         {
             bool retreat = false;
             if (soldier.Piece == CannonUtils.ISoldiers.dark_soldier)
@@ -271,7 +268,7 @@ namespace CannonModel
                         {
                             retreat = true;
                         }
-                        LegalMoves.Add(new Move(soldier.DeepCopy(),
+                        FriendLegalMoves.Add(new Move(soldier.DeepCopy(),
                                                 c.DeepCopy(),
                                                 CannonUtils.IMoves.capture));
                     }
@@ -288,7 +285,7 @@ namespace CannonModel
                         {
                             retreat = true;
                         }
-                        LegalMoves.Add(new Move(soldier.DeepCopy(),
+                        FriendLegalMoves.Add(new Move(soldier.DeepCopy(),
                                                 c.DeepCopy(),
                                                 CannonUtils.IMoves.capture));
                     }
@@ -348,7 +345,7 @@ namespace CannonModel
                         {
                             retreat = true;
                         }
-                        LegalMoves.Add(new Move(soldier.DeepCopy(),
+                        FriendLegalMoves.Add(new Move(soldier.DeepCopy(),
                                                 c.DeepCopy(),
                                                 CannonUtils.IMoves.capture));
                     }
@@ -365,7 +362,7 @@ namespace CannonModel
                         {
                             retreat = true;
                         }
-                        LegalMoves.Add(new Move(soldier.DeepCopy(),
+                        FriendLegalMoves.Add(new Move(soldier.DeepCopy(),
                                                 c.DeepCopy(),
                                                 CannonUtils.IMoves.capture));
                     }
@@ -404,7 +401,7 @@ namespace CannonModel
             if (c.Piece == CannonUtils.ISoldiers.empty)
             {
                 // step
-                LegalMoves.Add(new Move(soldier.DeepCopy(),
+                FriendLegalMoves.Add(new Move(soldier.DeepCopy(),
                                         c.DeepCopy(),
                                         CannonUtils.IMoves.step));
             }
@@ -416,7 +413,7 @@ namespace CannonModel
                 {
                     retreat = true;
                 }
-                LegalMoves.Add(new Move(soldier.DeepCopy(),
+                FriendLegalMoves.Add(new Move(soldier.DeepCopy(),
                                         c.DeepCopy(),
                                         CannonUtils.IMoves.capture));
             }
@@ -438,7 +435,7 @@ namespace CannonModel
                 if (Grid[soldier.Row - 1, soldier.Column].Piece == CannonUtils.ISoldiers.empty &&
                     Grid[soldier.Row - 2, soldier.Column].Piece == CannonUtils.ISoldiers.empty)
                 {
-                    LegalMoves.Add(new Move(soldier.DeepCopy(),
+                    FriendLegalMoves.Add(new Move(soldier.DeepCopy(),
                                             Grid[soldier.Row - 2, soldier.Column].DeepCopy(), 
                                             CannonUtils.IMoves.retreat));
                 }
@@ -448,7 +445,7 @@ namespace CannonModel
                     Grid[soldier.Row - 1, soldier.Column-1].Piece == CannonUtils.ISoldiers.empty &&
                     Grid[soldier.Row - 2, soldier.Column - 2].Piece == CannonUtils.ISoldiers.empty)
                 {
-                    LegalMoves.Add(new Move(soldier.DeepCopy(),
+                    FriendLegalMoves.Add(new Move(soldier.DeepCopy(),
                                     Grid[soldier.Row - 2, soldier.Column - 2].DeepCopy(),
                                     CannonUtils.IMoves.retreat));
                 }
@@ -458,7 +455,7 @@ namespace CannonModel
                     Grid[soldier.Row - 1, soldier.Column + 1].Piece == CannonUtils.ISoldiers.empty &&
                     Grid[soldier.Row - 2, soldier.Column + 2].Piece == CannonUtils.ISoldiers.empty)
                 {
-                    LegalMoves.Add(new Move(soldier.DeepCopy(),
+                    FriendLegalMoves.Add(new Move(soldier.DeepCopy(),
                                     Grid[soldier.Row - 2, soldier.Column + 2].DeepCopy(),
                                     CannonUtils.IMoves.retreat));
                 }
@@ -471,7 +468,7 @@ namespace CannonModel
                 if (Grid[soldier.Row + 1, soldier.Column].Piece == CannonUtils.ISoldiers.empty &&
                     Grid[soldier.Row + 2, soldier.Column].Piece == CannonUtils.ISoldiers.empty)
                 {
-                    LegalMoves.Add(new Move(soldier.DeepCopy(),
+                    FriendLegalMoves.Add(new Move(soldier.DeepCopy(),
                                     Grid[soldier.Row + 2, soldier.Column].DeepCopy(),
                                     CannonUtils.IMoves.retreat));
                 }
@@ -481,7 +478,7 @@ namespace CannonModel
                     Grid[soldier.Row + 1, soldier.Column - 1].Piece == CannonUtils.ISoldiers.empty &&
                     Grid[soldier.Row + 2, soldier.Column - 2].Piece == CannonUtils.ISoldiers.empty)
                 {
-                    LegalMoves.Add(new Move(soldier.DeepCopy(),
+                    FriendLegalMoves.Add(new Move(soldier.DeepCopy(),
                                     Grid[soldier.Row + 2, soldier.Column - 2].DeepCopy(),
                                     CannonUtils.IMoves.retreat));
                 }
@@ -491,7 +488,7 @@ namespace CannonModel
                     Grid[soldier.Row + 1, soldier.Column + 1].Piece == CannonUtils.ISoldiers.empty &&
                     Grid[soldier.Row + 2, soldier.Column + 2].Piece == CannonUtils.ISoldiers.empty)
                 {
-                    LegalMoves.Add(new Move(soldier.DeepCopy(),
+                    FriendLegalMoves.Add(new Move(soldier.DeepCopy(),
                                     Grid[soldier.Row + 2, soldier.Column + 2].DeepCopy(),
                                     CannonUtils.IMoves.retreat));
                 }
@@ -506,7 +503,7 @@ namespace CannonModel
         ///     standing on the same line as the shooting cannon 
         ///     if there is one or two empty points between the cannon's front soldier and the enemy piece
         /// </summary>
-        private void SetCANNONMoves(Cell soldier)
+        private void slideMoves(Cell soldier)
         {
             // ORTHOGONAL 
             // Two soldiers at left -> slide to left
@@ -515,7 +512,7 @@ namespace CannonModel
                 && Grid[soldier.Row, soldier.Column - 2].Piece == soldier.Piece
                 && Grid[soldier.Row, soldier.Column - 3].Piece == CannonUtils.ISoldiers.empty)
             {
-                LegalMoves.Add(new Move(soldier.DeepCopy(), Grid[soldier.Row, soldier.Column - 3].DeepCopy(), CannonUtils.IMoves.slideCannon));
+                FriendLegalMoves.Add(new Move(soldier.DeepCopy(), Grid[soldier.Row, soldier.Column - 3].DeepCopy(), CannonUtils.IMoves.slideCannon));
                   
             }
 
@@ -525,7 +522,7 @@ namespace CannonModel
                 && Grid[soldier.Row, soldier.Column + 2].Piece == soldier.Piece
                 && Grid[soldier.Row, soldier.Column + 3].Piece == CannonUtils.ISoldiers.empty)
             {
-                LegalMoves.Add(new Move(soldier.DeepCopy(), Grid[soldier.Row, soldier.Column + 3].DeepCopy(), CannonUtils.IMoves.slideCannon));
+                FriendLegalMoves.Add(new Move(soldier.DeepCopy(), Grid[soldier.Row, soldier.Column + 3].DeepCopy(), CannonUtils.IMoves.slideCannon));
             }
 
             // Two soldiers bellow -> slide bellow
@@ -534,7 +531,7 @@ namespace CannonModel
                 && Grid[soldier.Row - 2, soldier.Column].Piece == soldier.Piece
                 && Grid[soldier.Row - 3, soldier.Column].Piece == CannonUtils.ISoldiers.empty)
             {
-                LegalMoves.Add(new Move(soldier.DeepCopy(), Grid[soldier.Row - 3, soldier.Column].DeepCopy(), CannonUtils.IMoves.slideCannon));
+                FriendLegalMoves.Add(new Move(soldier.DeepCopy(), Grid[soldier.Row - 3, soldier.Column].DeepCopy(), CannonUtils.IMoves.slideCannon));
             }
 
             // two soldiers above -> slide above
@@ -543,7 +540,7 @@ namespace CannonModel
                 && Grid[soldier.Row + 2, soldier.Column].Piece == soldier.Piece
                 && Grid[soldier.Row + 3, soldier.Column].Piece == CannonUtils.ISoldiers.empty)
             {
-                LegalMoves.Add(new Move(soldier.DeepCopy(), Grid[soldier.Row + 3, soldier.Column].DeepCopy(), CannonUtils.IMoves.slideCannon));
+                FriendLegalMoves.Add(new Move(soldier.DeepCopy(), Grid[soldier.Row + 3, soldier.Column].DeepCopy(), CannonUtils.IMoves.slideCannon));
             }
 
             // DIAGONAL
@@ -553,7 +550,7 @@ namespace CannonModel
                 && Grid[soldier.Row + 2, soldier.Column - 2].Piece == soldier.Piece
                 && Grid[soldier.Row + 3, soldier.Column - 3].Piece == CannonUtils.ISoldiers.empty)
             {
-                LegalMoves.Add(new Move(soldier.DeepCopy(), Grid[soldier.Row + 3, soldier.Column - 3].DeepCopy(), CannonUtils.IMoves.slideCannon));
+                FriendLegalMoves.Add(new Move(soldier.DeepCopy(), Grid[soldier.Row + 3, soldier.Column - 3].DeepCopy(), CannonUtils.IMoves.slideCannon));
             }
 
             // two soldiers at diagonal lower left 
@@ -562,7 +559,7 @@ namespace CannonModel
                 && Grid[soldier.Row - 2, soldier.Column - 2].Piece == soldier.Piece
                 && Grid[soldier.Row - 3, soldier.Column - 3].Piece == CannonUtils.ISoldiers.empty)
             {
-                LegalMoves.Add(new Move(soldier.DeepCopy(), Grid[soldier.Row - 3, soldier.Column - 3].DeepCopy(), CannonUtils.IMoves.slideCannon));
+                FriendLegalMoves.Add(new Move(soldier.DeepCopy(), Grid[soldier.Row - 3, soldier.Column - 3].DeepCopy(), CannonUtils.IMoves.slideCannon));
             }
 
             // diagonal upper right
@@ -571,7 +568,7 @@ namespace CannonModel
                 && Grid[soldier.Row + 2, soldier.Column + 2].Piece == soldier.Piece
                 && Grid[soldier.Row + 3, soldier.Column + 3].Piece == CannonUtils.ISoldiers.empty)
             {
-                LegalMoves.Add(new Move(soldier.DeepCopy(), Grid[soldier.Row + 3, soldier.Column + 3].DeepCopy(), CannonUtils.IMoves.slideCannon));
+                FriendLegalMoves.Add(new Move(soldier.DeepCopy(), Grid[soldier.Row + 3, soldier.Column + 3].DeepCopy(), CannonUtils.IMoves.slideCannon));
             }
 
             // diagonal lower right 
@@ -580,11 +577,11 @@ namespace CannonModel
                 && Grid[soldier.Row - 2, soldier.Column + 2].Piece == soldier.Piece
                 && Grid[soldier.Row - 3, soldier.Column + 3].Piece == CannonUtils.ISoldiers.empty)
             {
-                LegalMoves.Add(new Move(soldier.DeepCopy(), Grid[soldier.Row - 3, soldier.Column + 3].DeepCopy(), CannonUtils.IMoves.slideCannon));
+                FriendLegalMoves.Add(new Move(soldier.DeepCopy(), Grid[soldier.Row - 3, soldier.Column + 3].DeepCopy(), CannonUtils.IMoves.slideCannon));
             }
         }
 
-        private void SetSHOOTS(Cell soldier)
+        private void shootMoves(Cell soldier)
         {
             // ORTHOGONAL 
             // Three soldiers at left
@@ -594,7 +591,7 @@ namespace CannonModel
                 && Grid[soldier.Row, soldier.Column - 3].Piece == Friend
                 && Grid[soldier.Row, soldier.Column - 4].Piece == Friend)
             {
-                LegalMoves.Add(new Move(soldier.DeepCopy(), soldier.DeepCopy(), CannonUtils.IMoves.shootCannon));
+                FriendLegalMoves.Add(new Move(soldier.DeepCopy(), soldier.DeepCopy(), CannonUtils.IMoves.shootCannon));
             }
 
             // shoot right
@@ -604,7 +601,7 @@ namespace CannonModel
                 && Grid[soldier.Row, soldier.Column + 3].Piece == Friend
                 && Grid[soldier.Row, soldier.Column + 4].Piece == Friend)
             {
-                LegalMoves.Add(new Move(soldier.DeepCopy(), soldier.DeepCopy(), CannonUtils.IMoves.shootCannon));
+                FriendLegalMoves.Add(new Move(soldier.DeepCopy(), soldier.DeepCopy(), CannonUtils.IMoves.shootCannon));
             }
 
             // Two soldiers bellow -> slide bellow
@@ -614,7 +611,7 @@ namespace CannonModel
                 && Grid[soldier.Row - 3, soldier.Column].Piece == Friend
                 && Grid[soldier.Row - 4, soldier.Column].Piece == Friend)
             {
-                LegalMoves.Add(new Move(soldier.DeepCopy(), soldier.DeepCopy(), CannonUtils.IMoves.shootCannon));
+                FriendLegalMoves.Add(new Move(soldier.DeepCopy(), soldier.DeepCopy(), CannonUtils.IMoves.shootCannon));
             }
 
             // two soldiers above -> slide above
@@ -624,7 +621,7 @@ namespace CannonModel
                 && Grid[soldier.Row + 3, soldier.Column].Piece == Friend
                 && Grid[soldier.Row + 4, soldier.Column].Piece == Friend)
             {
-                LegalMoves.Add(new Move(soldier.DeepCopy(), soldier.DeepCopy(), CannonUtils.IMoves.shootCannon));
+                FriendLegalMoves.Add(new Move(soldier.DeepCopy(), soldier.DeepCopy(), CannonUtils.IMoves.shootCannon));
             }
 
             // DIAGONAL
@@ -635,7 +632,7 @@ namespace CannonModel
                 && Grid[soldier.Row + 3, soldier.Column - 3].Piece == Friend
                 && Grid[soldier.Row + 4, soldier.Column - 4].Piece == Friend)
             {
-                LegalMoves.Add(new Move(soldier.DeepCopy(), soldier.DeepCopy(), CannonUtils.IMoves.shootCannon));
+                FriendLegalMoves.Add(new Move(soldier.DeepCopy(), soldier.DeepCopy(), CannonUtils.IMoves.shootCannon));
             }
 
             // two soldiers at diagonal lower left 
@@ -645,7 +642,7 @@ namespace CannonModel
                 && Grid[soldier.Row - 3, soldier.Column - 3].Piece == Friend
                 && Grid[soldier.Row - 4, soldier.Column - 4].Piece == Friend)
             {
-                LegalMoves.Add(new Move(soldier.DeepCopy(), soldier.DeepCopy(), CannonUtils.IMoves.shootCannon));
+                FriendLegalMoves.Add(new Move(soldier.DeepCopy(), soldier.DeepCopy(), CannonUtils.IMoves.shootCannon));
             }
 
             // diagonal upper right
@@ -655,7 +652,7 @@ namespace CannonModel
                 && Grid[soldier.Row + 3, soldier.Column + 3].Piece == Friend
                 && Grid[soldier.Row + 4, soldier.Column + 4].Piece == Friend)
             {
-                LegalMoves.Add(new Move(soldier.DeepCopy(), soldier.DeepCopy(), CannonUtils.IMoves.shootCannon));
+                FriendLegalMoves.Add(new Move(soldier.DeepCopy(), soldier.DeepCopy(), CannonUtils.IMoves.shootCannon));
             }
 
             // diagonal lower right 
@@ -665,7 +662,7 @@ namespace CannonModel
                 && Grid[soldier.Row - 3, soldier.Column + 3].Piece == Friend
                 && Grid[soldier.Row - 4, soldier.Column + 4].Piece == Friend)
             {
-                LegalMoves.Add(new Move(soldier.DeepCopy(), soldier.DeepCopy(), CannonUtils.IMoves.shootCannon));
+                FriendLegalMoves.Add(new Move(soldier.DeepCopy(), soldier.DeepCopy(), CannonUtils.IMoves.shootCannon));
             }
         }
         #endregion

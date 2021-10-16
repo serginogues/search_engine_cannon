@@ -39,7 +39,7 @@ namespace SearchEngine
 
             int bestValue = -100000000;
             int bestMove = 0;
-            for (int child = 0; child < s.LegalMoves.Count; child++)
+            for (int child = 0; child < s.FriendLegalMoves.Count; child++)
             {
                 int result = -AlphaBeta(s.Successor(child), -beta, -alpha, depth - 1);
                 if (result > bestValue)

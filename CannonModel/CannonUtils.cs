@@ -179,7 +179,7 @@ namespace CannonModel
             for (int i = 0; i < columnChar.Length; i++) { Console.Write(columnChar[i]); Console.Write("   "); }
             Console.WriteLine();
 
-            List<Move> list = s.LegalMoves.Where(x => x.OldCell.Row == chosen.Row && x.OldCell.Column == chosen.Column).ToList();
+            List<Move> list = s.FriendLegalMoves.Where(x => x.OldCell.Row == chosen.Row && x.OldCell.Column == chosen.Column).ToList();
             for (int i = 10 - 1; i >= 0; i--)
             {
                 Console.Write(i + 1);
@@ -230,6 +230,18 @@ namespace CannonModel
             foreach (Move move in moves)
             {
                 printMove(move, count);
+                count++;
+            }
+        }
+
+        public static void printLegalMovesWithScore(List<Move> moves, List<int> scores)
+        {
+            int count = 0;
+            Console.WriteLine("List of best moves: ");
+            foreach (Move move in moves)
+            {
+                printMove(move, count);
+                Console.WriteLine(count + " SCORE = " + scores[count]);
                 count++;
             }
         }
