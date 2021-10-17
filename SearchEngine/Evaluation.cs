@@ -77,36 +77,6 @@ namespace SearchEngine
             return dark_score - light_score;
         }
 
-        public static int safe_mobility_dist2Town(BoardState s)
-        {
-            BoardState s2 = s.DeepCopy();
-            s2.TurnCounter++;
-            s2.initLegalMoves();
-            BoardState s_dark;
-            BoardState s_light;
-            if (s.Friend == CannonUtils.ISoldiers.dark_soldier)
-            {
-                s_dark = s;
-                s_light = s2;
-            }
-            else
-            {
-                s_dark = s2;
-                s_light = s;
-            }
-
-            // dark
-            int dark_score = 10 * s_dark.FriendLegalMoves.Count(x => x.Type == CannonUtils.IMoves.step);
-            dark_score = dark_score + 50 * s_dark.FriendLegalMoves.Count(x => x.Type == CannonUtils.IMoves.shootCannon);
-            dark_score = dark_score + 40 * s_dark.FriendLegalMoves.Count(x => x.Type == CannonUtils.IMoves.capture);
-            // light
-            int light_score = 10 * s_light.FriendLegalMoves.Count(x => x.Type == CannonUtils.IMoves.step);
-            light_score = light_score + 50 * s_light.FriendLegalMoves.Count(x => x.Type == CannonUtils.IMoves.shootCannon);
-            light_score = light_score + 40 * s_light.FriendLegalMoves.Count(x => x.Type == CannonUtils.IMoves.capture);
-
-            return dark_score - light_score;
-        }
-
         //private int evalSafeMobility(BoardState s)
         //{
         //    BoardState new_s = s.DeepCopy();

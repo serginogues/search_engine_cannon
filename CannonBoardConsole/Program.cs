@@ -16,8 +16,10 @@ namespace CannonBoardConsole
 
         /// <summary>
         /// TODO:
+        ///  - your  program  has  to  finish  the  whole  game  within  10minutes own time.
+        ///  - OPPONENT (MANUAL USER): Moves of the opponent are entered manually  by  the  operator.
+        ///  - YOU (AI): Moves  by  your  program  are  communicated  to  your  opponent.
         /// GAME LOGIC:
-        /// - Threefold repetition = draw
         /// - Implement Undo move
         /// ITERATIVE DEEPENING: 
         /// - Add null move (iterative deepening) and multi cut

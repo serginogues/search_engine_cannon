@@ -7,9 +7,10 @@ using System.Diagnostics;
 namespace CannonModel
 {
     /// <summary>
-    /// Board coordinates follow this code: http://www.iggamecenter.com/info/en/cannon.html
+    /// Board coordinates follow this code: 
+    /// http://www.iggamecenter.com/info/en/cannon.html
     ///   A B C D E F G H I J
-    /// 9 · · · · · · · · · ·
+    /// 9 · x · · · · · · · ·
     /// 8 · · · · · · · · · ·
     /// 7 · · · · · · · · · ·
     /// 6 · · · · · · · · · ·
@@ -19,10 +20,7 @@ namespace CannonModel
     /// 2 · · · · · · · · · ·
     /// 1 · · · · · · · · · ·
     /// 0 · · · · · · · · · ·
-    /// That is, position 9-B = Grid[8,1]
-    /// ****************************************************************************************
-    /// Compute legal moves given current state of the board with ResetStateBoard()
-    /// 
+    /// x = Grid[8,1]
     /// </summary>
     public class BoardState
     {
