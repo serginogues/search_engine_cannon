@@ -38,7 +38,13 @@ namespace CannonModel
         /// </summary>
         public CannonUtils.INode TerminalState { get; set; }
         public Cell DarkTown { get; set; }
-        public Cell LightTown { get; set; } 
+        public Cell LightTown { get; set; }
+
+        /// <summary>
+        /// Used in Killer moves heuristic
+        /// In standard chess terminology, one move consists of a turn by each player; therefore a ply in chess is a half-move.
+        /// </summary>
+        public int Ply => (int)Math.Truncate((decimal)(TurnCounter/2));
         #endregion
 
         #region Constructor (root node)

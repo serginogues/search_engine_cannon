@@ -46,7 +46,7 @@ namespace CannonBoardConsole
             // init users
             ManualUser user = new ManualUser();
             myBoard.AddTown(4, myBoard.Friend);
-            AISearchEngine ai = new AISearchEngine(AIUtils.IEval.dist2EnemyTown, 1);
+            AISearchEngine ai = new AISearchEngine(AIUtils.IEval.safeMobility, 1, true);
             myBoard.AddTown(4, myBoard.Friend);
 
             Console.WriteLine("Evaluation root node = "+ ai.Evaluate(myBoard));
@@ -90,8 +90,8 @@ namespace CannonBoardConsole
             CannonUtils.printBoard(myBoard, false);
 
             // Init Players
-            AISearchEngine ai_dark = new AISearchEngine(AIUtils.IEval.dist2EnemyTown, 1);
-            AISearchEngine ai_light = new AISearchEngine(AIUtils.IEval.safeMobility, -1);
+            AISearchEngine ai_dark = new AISearchEngine(AIUtils.IEval.dist2EnemyTown, 1, true);
+            AISearchEngine ai_light = new AISearchEngine(AIUtils.IEval.safeMobility, -1, true);
 
             // add towns
             myBoard.AddTown(9, myBoard.Friend);

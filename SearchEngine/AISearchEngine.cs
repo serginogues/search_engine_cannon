@@ -18,35 +18,38 @@ namespace SearchEngine
         /// Transposition table
         /// </summary>
         private TranspositionTable myTT { get; set; }
-        private int[] KillerMoveList { get; set; }
+        /// <summary>
+        /// killerMoves[ply][slot]
+        /// https://stackoverflow.com/questions/17692867/implementing-killer-heuristic-in-alpha-beta-search-in-chess
+        /// </summary>
+        private int[,] killerMoves { get; set; }
         private int Color { get; set; }
-        private int Depth { get; set; }
         public static Random rand { get; set; }
         public AIUtils.IEval eval_f { get; set; }
-        //private List<EvaluatedNode> moveEvaluationList { get; set; } 
+        private bool isMultiCut { get; set; }
 
+        // private List<EvaluatedNode> moveEvaluationList { get; set; } 
 
         #region counters
         private int nodesEvaluated { get; set; }
         private int prunnings { get; set; }
+        private int multi_cut_prunnings { get; set; }
         #endregion
 
-        public AISearchEngine(AIUtils.IEval function, int color)
+        public AISearchEngine(AIUtils.IEval function, int color, bool is_multi_cut = true)
         {
             eval_f = function;
             Color = color;
+            isMultiCut = is_multi_cut;
         }
 
         public BoardState Search(BoardState root, int depth)
         {
             rand = new Random();
             Console.WriteLine();
-
             myTT = new TranspositionTable(root);
-            // KillerMoves = new int[Depth];
-            
-            Depth = depth;
-            
+            killerMoves = new int[100,2]; // make big enough and save best two killer moves per ply
+
             if (Color == 1) { Console.WriteLine("DARK AI's TURN"); }
             else { Console.WriteLine("LIGHT AI's TURN"); }
 
@@ -55,19 +58,19 @@ namespace SearchEngine
 
             int[] values = new int[2];
             // Iterative-deepening
-            for (int d = 1; d <= Depth; d++)
+            for (int d = 1; d <= depth; d++)
             {
                 nodesEvaluated = 0;
                 prunnings = 0;
+                multi_cut_prunnings = 0;
                 values = AlphaBetaWithTT(root, -1000000, 100000, d, Color);
-
-                //searchEngine.myTT.ResetAllAncientFlags();
 
                 var elapsed = stopWatch.ElapsedMilliseconds;
                 Console.WriteLine("Depth = " + d +
                     ", Nodes Evaluated = " + nodesEvaluated +
                     " in " + elapsed.ToString() + "[ms]" +
-                    ", prunnings = " + prunnings +
+                    ", ab prunings = " + prunnings +
+                    ", multi-cut prunings = " + multi_cut_prunnings +
                     ", TT entries = " + myTT.TT.ToList().Where(x => x != null).ToList().Count);
 
                 if (elapsed > 2000)
@@ -132,17 +135,54 @@ namespace SearchEngine
             #endregion
 
             // We could not cut-off with TT entry so we need to investigate deeper
-
             int bestValue = -100000000;
             int bestMove = 0;
-
             int n_moves = s.FriendLegalMoves.Count;
             List<int> successor_list = Enumerable.Range(0, n_moves).ToList();
 
+            #region multi-cut
+            if (isMultiCut)
+            {
+                // before regular ab search
+                int c = 0;
+                int m = 0;
+                int C = 3;
+                int M = 10;
+                int R = 2;
+                while (m < M && m < n_moves)
+                {
+                    int new_depth = depth - 1 - R;
+                    if (new_depth < 0) { new_depth = 0; }
+                    int result = -AlphaBetaWithTT(s.Successor(m), -beta, -alpha, new_depth, -color)[0];
+                    if (result > bestValue)
+                    {
+                        bestValue = result;
+                        bestMove = m;
+                    }
+                    if (result >= beta)
+                    {
+                        c++;
+                        if (c >= C)
+                        {
+                            multi_cut_prunnings++;
+                            return new int[] { beta, 0 };
+                        }
+                    }
+                    m++;
+                }
+                successor_list.Insert(0, bestMove);
+                successor_list.RemoveAt(bestMove);
+            }
+            // start searching all children again
+            #endregion
+
+            bestValue = -100000000;
+            bestMove = 0;
+
             #region Killer Heuristics
             // killer Move after TT bestMove
-            //int killer = KillerMoves[depth];
-            //if (KillerMoves[depth] != null && killer < n_moves)
+            //int killer = killerMoves[s.Ply, 2];
+            //if (killer != 0 && killer < n_moves)
             //{
             //    successor_list.Insert(0, killer);
             //    successor_list.RemoveAt(killer);
@@ -159,11 +199,11 @@ namespace SearchEngine
 
             // if position is not found, n.depth will be -1
             // Regular alpha-beta search algorithm
-            //List<EvaluatedNode> scoreList = new List<EvaluatedNode>();
+            List<EvaluatedNode> scoreList = new List<EvaluatedNode>();
             foreach (int child in successor_list)
             {
                 int result = -AlphaBetaWithTT(s.Successor(child), -beta, -alpha, depth - 1, -color)[0];
-                //scoreList.Add(new EvaluatedNode() {depth=depth, move=s.FriendLegalMoves[child], value=result });
+                scoreList.Add(new EvaluatedNode() {depth=depth, move=s.FriendLegalMoves[child], value=result });
                 if (result > bestValue)
                 {
                     bestValue = result;
@@ -172,7 +212,6 @@ namespace SearchEngine
                 if (bestValue > alpha) { alpha = bestValue; }
                 if (bestValue >= beta)
                 {
-                    // KillerMoves[depth] = bestValue;
                     prunnings++;
                     break;
                 }                

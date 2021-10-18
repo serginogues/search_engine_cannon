@@ -7,6 +7,17 @@ namespace CannonModel
 {
     public static class CannonUtils
     {
+
+        public static bool movesAreEqual(Move a, Move b)
+        {
+            if(a.Type == b.Type && 
+                a.OldCell.Row == b.OldCell.Row && a.OldCell.Column == b.OldCell.Column &&
+                a.NewCell.Row == b.NewCell.Row && a.NewCell.Column == b.NewCell.Column)
+            {
+                return true;
+            }
+            else { return false; }
+        }
         public static int ChebyshevDistance(Cell soldier, Cell town)
         {
             return Math.Abs(soldier.Row - soldier.Row) + Math.Abs(soldier.Column - soldier.Column);
