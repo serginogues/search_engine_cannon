@@ -45,9 +45,9 @@ namespace CannonBoardConsole
 
             // init users
             ManualUser user = new ManualUser();
-            myBoard.AddTown(4, myBoard.Friend);
+            myBoard.AddTown(4, myBoard.myFriend);
             AISearchEngine ai = new AISearchEngine(AIUtils.IEval.safeMobility, 1, true);
-            myBoard.AddTown(4, myBoard.Friend);
+            myBoard.AddTown(4, myBoard.myFriend);
 
             Console.WriteLine("Evaluation root node = "+ ai.Evaluate(myBoard));
 
@@ -57,9 +57,9 @@ namespace CannonBoardConsole
                 // dark user leads
                 myBoard = color == 1 ? ai.Search(myBoard, Depth) : user.MakeMove(myBoard);
 
-                if (myBoard.TerminalState != CannonUtils.INode.leaf)
+                if (myBoard.terminalState != CannonUtils.INode.leaf)
                 {
-                    string winner = myBoard.TerminalState == CannonUtils.INode.dark_wins ? "Dark wins!!!" : "Light wins !!!";
+                    string winner = myBoard.terminalState == CannonUtils.INode.dark_wins ? "Dark wins!!!" : "Light wins !!!";
                     Console.WriteLine(winner);
                     break;
                 }
@@ -67,9 +67,9 @@ namespace CannonBoardConsole
                 // light user follows
                 myBoard = color == 1 ? user.MakeMove(myBoard) : ai.Search(myBoard, Depth);
 
-                if (myBoard.TerminalState != CannonUtils.INode.leaf)
+                if (myBoard.terminalState != CannonUtils.INode.leaf)
                 {
-                    string winner = myBoard.TerminalState == CannonUtils.INode.dark_wins ? "Dark wins!!!" : "Light wins !!!";
+                    string winner = myBoard.terminalState == CannonUtils.INode.dark_wins ? "Dark wins!!!" : "Light wins !!!";
                     Console.WriteLine(winner);
                     break;
                 }
@@ -94,8 +94,8 @@ namespace CannonBoardConsole
             AISearchEngine ai_light = new AISearchEngine(AIUtils.IEval.safeMobility, -1, true);
 
             // add towns
-            myBoard.AddTown(9, myBoard.Friend);
-            myBoard.AddTown(0, myBoard.Friend);
+            myBoard.AddTown(9, myBoard.myFriend);
+            myBoard.AddTown(0, myBoard.myFriend);
 
             Console.WriteLine("Evaluation root node = " + ai_dark.Evaluate(myBoard));
 
@@ -107,9 +107,9 @@ namespace CannonBoardConsole
                 Console.WriteLine("================================= Turn for Dark");
                 myBoard = ai_dark.Search(myBoard, Depth);
 
-                if (myBoard.TerminalState != CannonUtils.INode.leaf)
+                if (myBoard.terminalState != CannonUtils.INode.leaf)
                 {
-                    string winner = myBoard.TerminalState == CannonUtils.INode.dark_wins ? "Dark wins!!!" : "Light wins !!!";
+                    string winner = myBoard.terminalState == CannonUtils.INode.dark_wins ? "Dark wins!!!" : "Light wins !!!";
                     Console.WriteLine(winner);
                     break;
                 }
@@ -119,9 +119,9 @@ namespace CannonBoardConsole
                 Console.WriteLine("================================= Turn for Light");
                 myBoard = ai_light.Search(myBoard, Depth);
 
-                if (myBoard.TerminalState != CannonUtils.INode.leaf)
+                if (myBoard.terminalState != CannonUtils.INode.leaf)
                 {
-                    string winner = myBoard.TerminalState == CannonUtils.INode.dark_wins ? "Dark wins!!!" : "Light wins !!!";
+                    string winner = myBoard.terminalState == CannonUtils.INode.dark_wins ? "Dark wins!!!" : "Light wins !!!";
                     Console.WriteLine(winner);
                      break;
                 }

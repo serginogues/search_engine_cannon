@@ -25,11 +25,11 @@ namespace CannonModel
             {
                 for (int j = 0; j < 10; j++)
                 {
-                    Cell s = myBoard.Grid[i, j];
-                    if (CannonUtils.IsOdd(myBoard.TurnCounter))
+                    Cell s = myBoard.myGrid[i, j];
+                    if (CannonUtils.IsOdd(myBoard.turnCounter))
                     {
                         // Light soldiers turn (p2)
-                        if (s.Piece == CannonUtils.ISoldiers.light_soldier)
+                        if (s.myPiece == CannonUtils.ISoldiers.light_soldier)
                         {
                             if (id == count)
                             {
@@ -41,7 +41,7 @@ namespace CannonModel
                     }
                     else
                     {
-                        if (s.Piece == CannonUtils.ISoldiers.dark_soldier)
+                        if (s.myPiece == CannonUtils.ISoldiers.dark_soldier)
                         {
                             if (id == count)
                             {
@@ -53,12 +53,12 @@ namespace CannonModel
                     }
                 }
             }
-            List<Move> moves = myBoard.FriendLegalMoves.Where(x => x.OldCell.Row == cell.Row && x.OldCell.Column == cell.Column).ToList();
+            List<Move> moves = myBoard.legalMoves.Where(x => x.OldCell.myRow == cell.myRow && x.OldCell.myColumn == cell.myColumn).ToList();
             CannonUtils.printLegalMoves(moves);
 
             Console.WriteLine("Choose a move");
             id = readActionId();
-            id = myBoard.FriendLegalMoves.IndexOf(moves.ElementAt(id));
+            id = myBoard.legalMoves.IndexOf(moves.ElementAt(id));
             BoardState newB = myBoard.Successor(id);
             CannonUtils.printBoard(newB);
 
@@ -72,11 +72,11 @@ namespace CannonModel
 
         private void printShoots(BoardState myBoard)
         {
-            foreach (Move item in myBoard.FriendLegalMoves)
+            foreach (Move item in myBoard.legalMoves)
             {
                 if(item.Type == CannonUtils.IMoves.shootCannon)
                 {
-                    Console.WriteLine("Shoot at cell (" + item.NewCell.Row + "," + item.NewCell.Column + ")");
+                    Console.WriteLine("Shoot at cell (" + item.NewCell.myRow + "," + item.NewCell.myColumn + ")");
                 }
             }
         }

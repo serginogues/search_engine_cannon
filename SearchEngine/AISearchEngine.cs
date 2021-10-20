@@ -22,8 +22,8 @@ namespace SearchEngine
         /// killerMoves[ply][slot]
         /// https://stackoverflow.com/questions/17692867/implementing-killer-heuristic-in-alpha-beta-search-in-chess
         /// </summary>
-        private int[,] killerMoves { get; set; }
-        private int Color { get; set; }
+        //private Move[,] killerMoves { get; set; }
+        private int myColor { get; set; }
         public static Random rand { get; set; }
         public AIUtils.IEval eval_f { get; set; }
         private bool isMultiCut { get; set; }
@@ -39,7 +39,7 @@ namespace SearchEngine
         public AISearchEngine(AIUtils.IEval function, int color, bool is_multi_cut = true)
         {
             eval_f = function;
-            Color = color;
+            myColor = color;
             isMultiCut = is_multi_cut;
         }
 
@@ -48,9 +48,9 @@ namespace SearchEngine
             rand = new Random();
             Console.WriteLine();
             myTT = new TranspositionTable(root);
-            killerMoves = new int[100,2]; // make big enough and save best two killer moves per ply
+            //killerMoves = new Move[100, 2]; // make big enough and save best two killer moves per ply
 
-            if (Color == 1) { Console.WriteLine("DARK AI's TURN"); }
+            if (myColor == 1) { Console.WriteLine("DARK AI's TURN"); }
             else { Console.WriteLine("LIGHT AI's TURN"); }
 
             Stopwatch stopWatch = new Stopwatch();
@@ -63,7 +63,7 @@ namespace SearchEngine
                 nodesEvaluated = 0;
                 prunnings = 0;
                 multi_cut_prunnings = 0;
-                values = AlphaBetaWithTT(root, -1000000, 100000, d, Color);
+                values = AlphaBetaWithTT(root, -1000000, 100000, d, myColor, 0);
 
                 var elapsed = stopWatch.ElapsedMilliseconds;
                 Console.WriteLine("Depth = " + d +
@@ -85,7 +85,7 @@ namespace SearchEngine
             //CannonUtils.printLegalMovesWithScore(newEvaluatedL.Select(x => x.move).ToList(), newEvaluatedL.Select(x => x.value).ToList());
             //Console.WriteLine("AI optimal move:");
             //--------
-            CannonUtils.printMove(root.FriendLegalMoves[bestMove], bestMove);
+            CannonUtils.printMove(root.legalMoves[bestMove], bestMove);
             BoardState new_s = root.Successor(bestMove);
 
             return new_s;
@@ -95,8 +95,9 @@ namespace SearchEngine
         /// Decision algorithm to find the best move given current state of the board
         /// Call: AlphaBetaWithTT(s, -inf, inf, depth)
         /// </summary>
-        private int[] AlphaBetaWithTT(BoardState s, int alpha, int beta, int depth, int color)
+        private int[] AlphaBetaWithTT(BoardState s, int alpha, int beta, int depth, int color, int ply)
         {
+            
             // save original alpha value
             int olda = alpha;
             nodesEvaluated++;
@@ -119,25 +120,13 @@ namespace SearchEngine
             }
             #endregion
 
-            #region Terminal or Leaf node
-            if (s.TerminalState != CannonUtils.INode.leaf)
-            {
-                // terminal node
-                int score = 100000;
-                if(s.TerminalState == CannonUtils.INode.light_wins) { score = -score; }
-                return new int[] { score * color, 0 };
-            }
-            else if (depth == 0)
-            {
-                // leaf node
-                return new int[] { Evaluate(s) * color, 0 };
-            }
-            #endregion
+            // Terminal or Leaf node
+            if (depth == 0 || s.terminalState != CannonUtils.INode.leaf) { return new int[] { Evaluate(s) * color, 0 }; }
 
             // We could not cut-off with TT entry so we need to investigate deeper
             int bestValue = -100000000;
             int bestMove = 0;
-            int n_moves = s.FriendLegalMoves.Count;
+            int n_moves = s.legalMoves.Count;
             List<int> successor_list = Enumerable.Range(0, n_moves).ToList();
 
             #region multi-cut
@@ -153,7 +142,7 @@ namespace SearchEngine
                 {
                     int new_depth = depth - 1 - R;
                     if (new_depth < 0) { new_depth = 0; }
-                    int result = -AlphaBetaWithTT(s.Successor(m), -beta, -alpha, new_depth, -color)[0];
+                    int result = -AlphaBetaWithTT(s.Successor(m), -beta, -alpha, new_depth, -color, ply+1)[0];
                     if (result > bestValue)
                     {
                         bestValue = result;
@@ -181,11 +170,18 @@ namespace SearchEngine
 
             #region Killer Heuristics
             // killer Move after TT bestMove
-            //int killer = killerMoves[s.Ply, 2];
-            //if (killer != 0 && killer < n_moves)
+            //for (int slot = 0; slot < 2; slot++)
             //{
-            //    successor_list.Insert(0, killer);
-            //    successor_list.RemoveAt(killer);
+            //    Move killerMove = killerMoves[ply,slot];
+
+            //    for (int i = 0; i < s.legalMoves.Count; i++)
+            //        if (CannonUtils.movesAreEqual(s.legalMoves[i], killerMove))
+            //        {
+            //            // moves[i] is a killer move so move it up the list
+            //            successor_list.Insert(0, i);
+            //            successor_list.RemoveAt(i);
+            //            break;
+            //        }
             //}
             #endregion
 
@@ -199,11 +195,14 @@ namespace SearchEngine
 
             // if position is not found, n.depth will be -1
             // Regular alpha-beta search algorithm
-            List<EvaluatedNode> scoreList = new List<EvaluatedNode>();
+
+            //List<EvaluatedNode> scoreList = new List<EvaluatedNode>();
+
             foreach (int child in successor_list)
             {
-                int result = -AlphaBetaWithTT(s.Successor(child), -beta, -alpha, depth - 1, -color)[0];
-                scoreList.Add(new EvaluatedNode() {depth=depth, move=s.FriendLegalMoves[child], value=result });
+                BoardState newState = s.Successor(child);
+                int result = -AlphaBetaWithTT(newState, -beta, -alpha, depth - 1, -color, ply + 1)[0];
+                //scoreList.Add(new EvaluatedNode() {depth=depth, move=s.FriendLegalMoves[child], value=result });
                 if (result > bestValue)
                 {
                     bestValue = result;
@@ -212,6 +211,10 @@ namespace SearchEngine
                 if (bestValue > alpha) { alpha = bestValue; }
                 if (bestValue >= beta)
                 {
+                    // Killer move ordering and insert new move
+                    //killerMoves[ply,1] = killerMoves[ply,0];
+                    //killerMoves[ply, 0] = newState.legalMoves[bestMove];
+
                     prunnings++;
                     break;
                 }                
@@ -236,24 +239,33 @@ namespace SearchEngine
         /// </summary>
         public int Evaluate(BoardState s)
         {
-            switch (eval_f)
+            if (s.terminalState != CannonUtils.INode.leaf)
             {
-                case AIUtils.IEval.color:
-                    return Evaluation.byColor(s);
-                case AIUtils.IEval.dist2EnemyTown:
-                    return Evaluation.evalByTypeAndDistanceToTown(s);
-                case AIUtils.IEval.mobility:
-                    return Evaluation.mobility(s);
-                case AIUtils.IEval.safeMobility:
-                    return Evaluation.safe_mobility(s);
+                // terminal node
+                int score = 100000;
+                return s.terminalState == CannonUtils.INode.light_wins? -score : score;
             }
-            return 0;
+            else
+            {
+                switch (eval_f)
+                {
+                    case AIUtils.IEval.color:
+                        return Evaluation.byColor(s);
+                    case AIUtils.IEval.dist2EnemyTown:
+                        return Evaluation.evalByTypeAndDistanceToTown(s);
+                    case AIUtils.IEval.mobility:
+                        return Evaluation.mobility(s);
+                    case AIUtils.IEval.safeMobility:
+                        return Evaluation.safe_mobility(s);
+                }
+                return 0;
+            }
         }
 
         public void SetTowns(BoardState myBoard, bool auto = true)
         {
-            myBoard.AddTown(5, myBoard.Friend);
-            myBoard.AddTown(4, myBoard.Friend);
+            myBoard.AddTown(5, myBoard.myFriend);
+            myBoard.AddTown(4, myBoard.myFriend);
         }
     }
 

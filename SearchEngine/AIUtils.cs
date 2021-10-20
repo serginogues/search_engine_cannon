@@ -32,14 +32,14 @@ namespace SearchEngine
         {
 
             // leaf node?
-            if (depth == 0 || s.TerminalState != CannonUtils.INode.leaf)
+            if (depth == 0 || s.terminalState != CannonUtils.INode.leaf)
             {
                 return 0;
             }
 
             int bestValue = -100000000;
             int bestMove = 0;
-            for (int child = 0; child < s.FriendLegalMoves.Count; child++)
+            for (int child = 0; child < s.legalMoves.Count; child++)
             {
                 int result = -AlphaBeta(s.Successor(child), -beta, -alpha, depth - 1);
                 if (result > bestValue)

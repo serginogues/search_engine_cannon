@@ -6,24 +6,24 @@ namespace CannonModel
 {
     public class Cell
     {
-        public int Row { get; set; }
-        public int Column { get; set; }
-        public CannonUtils.ISoldiers Piece { get; set; }
+        public int myRow { get; set; }
+        public int myColumn { get; set; }
+        public CannonUtils.ISoldiers myPiece { get; set; }
 
         public Cell(int _row, int _column)
         {
-            Row = _row;
-            Column = _column;
-            Piece = CannonUtils.ISoldiers.empty;
+            myRow = _row;
+            myColumn = _column;
+            myPiece = CannonUtils.ISoldiers.empty;
         }
 
         public Cell DeepCopy()
         {
-            return new Cell(Row, Column)
+            return new Cell(myRow, myColumn)
             {
-                Piece = Piece,
-                Row = Row,
-                Column = Column
+                myPiece = myPiece,
+                myRow = myRow,
+                myColumn = myColumn
             };
         }
     }

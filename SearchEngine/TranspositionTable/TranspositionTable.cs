@@ -141,14 +141,14 @@ namespace SearchEngine
         public ulong zobristHash(BoardState s)
         {
             ulong key = 0;
-            foreach (Cell soldier in s.Grid)
+            foreach (Cell soldier in s.myGrid)
             {
-                if (soldier.Piece == CannonUtils.ISoldiers.dark_soldier ||
-                    soldier.Piece == CannonUtils.ISoldiers.light_soldier ||
-                    soldier.Piece == CannonUtils.ISoldiers.dark_town ||
-                    soldier.Piece == CannonUtils.ISoldiers.light_town)
+                if (soldier.myPiece == CannonUtils.ISoldiers.dark_soldier ||
+                    soldier.myPiece == CannonUtils.ISoldiers.light_soldier ||
+                    soldier.myPiece == CannonUtils.ISoldiers.dark_town ||
+                    soldier.myPiece == CannonUtils.ISoldiers.light_town)
                 {
-                    key = key ^ Table.SoldierToBitArray(soldier.Row, soldier.Column, soldier.Piece);
+                    key = key ^ Table.SoldierToBitArray(soldier.myRow, soldier.myColumn, soldier.myPiece);
                 }
             }
             // Return 20 first bits
@@ -160,7 +160,7 @@ namespace SearchEngine
         public ulong zobristHashWithOperations(BoardState state)
         {
             ulong key = rootZobristHash;
-            foreach (Move move in state.History)
+            foreach (Move move in state.myHistory)
             {
                 switch (move.Type)
                 {
@@ -186,9 +186,9 @@ namespace SearchEngine
         private ulong StepRetreatSlide(ulong key, Move state)
         {
             // remove old friend
-            ulong new_empty_cell = Table.SoldierToBitArray(state.OldCell.Row, state.OldCell.Column, state.OldCell.Piece);
+            ulong new_empty_cell = Table.SoldierToBitArray(state.OldCell.myRow, state.OldCell.myColumn, state.OldCell.myPiece);
             // add new friend
-            ulong soldier_moves_to_here = Table.SoldierToBitArray(state.NewCell.Row, state.NewCell.Column, state.OldCell.Piece);
+            ulong soldier_moves_to_here = Table.SoldierToBitArray(state.NewCell.myRow, state.NewCell.myColumn, state.OldCell.myPiece);
             return key ^ new_empty_cell ^ soldier_moves_to_here;
         }
 
@@ -199,18 +199,18 @@ namespace SearchEngine
         private ulong Capture(ulong key, Move state)
         {
             // remove captured enemy
-            ulong soldier_captured = Table.SoldierToBitArray(state.NewCell.Row, state.NewCell.Column, state.NewCell.Piece);
+            ulong soldier_captured = Table.SoldierToBitArray(state.NewCell.myRow, state.NewCell.myColumn, state.NewCell.myPiece);
             // remove old friend
-            ulong new_empty_cell = Table.SoldierToBitArray(state.OldCell.Row, state.OldCell.Column, state.OldCell.Piece);
+            ulong new_empty_cell = Table.SoldierToBitArray(state.OldCell.myRow, state.OldCell.myColumn, state.OldCell.myPiece);
             // add new friend
-            ulong soldier_moves_to_here = Table.SoldierToBitArray(state.NewCell.Row, state.NewCell.Column, state.OldCell.Piece);
+            ulong soldier_moves_to_here = Table.SoldierToBitArray(state.NewCell.myRow, state.NewCell.myColumn, state.OldCell.myPiece);
             return key ^ soldier_captured ^ new_empty_cell ^ soldier_moves_to_here;
         }
 
         private ulong Shoot(ulong key, Move state)
         {
             // remove captured enemy
-            return key ^ Table.SoldierToBitArray(state.NewCell.Row, state.NewCell.Column, state.NewCell.Piece);
+            return key ^ Table.SoldierToBitArray(state.NewCell.myRow, state.NewCell.myColumn, state.NewCell.myPiece);
         }
         #endregion
     }
