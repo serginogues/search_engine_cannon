@@ -29,7 +29,8 @@ namespace SearchEngine
             color,
             mobility,
             safeMobility,
-            dist2EnemyTown
+            dist2EnemyTown,
+            random
         }
 
         public enum ITTEntryFlag

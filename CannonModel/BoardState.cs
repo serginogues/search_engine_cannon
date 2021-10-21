@@ -170,7 +170,7 @@ namespace CannonModel
                 else if (piece == CannonUtils.ISoldiers.light_soldier) { boardCounter.lightPieceList.Add(square); }
             }
 
-            // Move Ordering based on IMove enum type
+            // order moves by enum score: shoot > capture > step > retreat ...
             legalMoves = legalMoves.OrderByDescending(o => (int)o.moveType).ToList();
 
             if (legalMoves.Count == 0)
@@ -407,7 +407,18 @@ namespace CannonModel
             // update LegalMoves
             child.generateLegalMoves();
 
-            // TODO: check if child is terminal node
+            return child;
+        }
+
+        public BoardState NullMove()
+        {
+            // create [child] that is exactly the same as [this]
+            BoardState child = DeepCopy();
+            child.turnCounter++;
+
+            // update LegalMoves
+            child.generateLegalMoves();
+
             return child;
         }
 

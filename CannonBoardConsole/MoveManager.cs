@@ -21,7 +21,7 @@ namespace CannonBoardConsole
         {
             if (isAI)
             {
-                return searchEngine.Search(root);
+                return searchEngine.search(root);
             }
             else
             {
@@ -55,7 +55,14 @@ namespace CannonBoardConsole
             CannonUtils.printLegalMoves(s.legalMoves.Where(x => x.moveType == CannonUtils.IMoves.shootCannon).ToList());
             Console.WriteLine();
             Console.WriteLine("Choose a soldier (if you want to SHOOT, you can do it after chosing a soldier):");
+            Console.WriteLine("To NULL move write '100'");
             int id = readActionId();
+
+            if (id == 100)
+            {
+                Console.WriteLine("NULL move");
+                return s.NullMove();
+            }
 
             int count = 0;
             int cell = 0;

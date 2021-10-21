@@ -30,8 +30,8 @@ namespace CannonBoardConsole
             // ai_dark vs ai_light = 0
             // ai_dark vs manual_light = 1
             // manual_dark vs ai_light = 2 
-            bool darkIsAi = false;
-            bool lightIsAi = true;
+            bool darkIsAi = true;
+            bool lightIsAi = false;
 
             Stopwatch stopWatch = new Stopwatch();
             stopWatch.Start();
@@ -41,7 +41,7 @@ namespace CannonBoardConsole
             root.root_init();            
 
             // Dark player
-            MoveManager darkP = new MoveManager(new AISearchEngine(AIUtils.IEval.color, 1));
+            MoveManager darkP = new MoveManager(new AISearchEngine(AIUtils.IEval.safeMobility, 1));
             MoveManager lightP = new MoveManager(new AISearchEngine(AIUtils.IEval.safeMobility, -1));
             Random rand = new Random();
             darkP.addTown(darkIsAi, root, rand);
@@ -50,6 +50,8 @@ namespace CannonBoardConsole
             // Play game
             for (int turn = 0; turn < 1000; turn++)
             {
+                BoardState stateCopy = root.DeepCopy();
+                stateCopy.generateLegalMoves();
                 try
                 {
                     Console.WriteLine();
@@ -58,12 +60,14 @@ namespace CannonBoardConsole
                         // dark turn
                         Console.WriteLine("================================= Turn for Dark");
                         root = darkP.Move(darkIsAi, root);
+                        root = UndoMove() ? stateCopy : root;
                     }
                     else
                     {
                         // light turn
                         Console.WriteLine("================================= Turn for Light");
                         root = lightP.Move(lightIsAi, root);
+                        root = UndoMove() ? stateCopy : root;
 
                     }
                     if (isTerminal(root)) { break; }
@@ -87,6 +91,23 @@ namespace CannonBoardConsole
             }
             CannonUtils.printBoard(root, false);
             Console.ReadLine();
+        }
+
+        static bool UndoMove()
+        {
+            Console.WriteLine("Write 500 if you want to UNDO move");
+            int num = int.Parse(Console.ReadLine());
+            if(num == 500)
+            {
+                Console.WriteLine("UNDO");
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+
+            Console.WriteLine();
         }
 
         static bool isTerminal(BoardState myBoard)
