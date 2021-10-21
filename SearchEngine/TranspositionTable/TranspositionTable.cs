@@ -104,29 +104,19 @@ namespace SearchEngine
 
         }
 
-        private void ReplaceIfNotAncient(Entry n, int entry_key, ulong zobristHashKey, int bestMove, int bestValue, AIUtils.ITTEntryFlag flag, int depth)
-        {
-            if (n.Ancient)
-            {
-                TT[entry_key] = new Entry(zobristHashKey)
-                {
-                    BestMove = bestMove,
-                    Depth = depth,
-                    Flag = flag,
-                    Score = bestValue
-                };
-            }
-        }
-
-        public void Update(int bestMove, int bestValue, AIUtils.ITTEntryFlag flag, int depth, ulong zobristHashKey)
-        {
-            int entry_key = hashFunction(zobristHashKey);
-            Entry e = TT[entry_key];
-            e.BestMove = bestMove;
-            e.Score = bestValue;
-            e.Flag = flag;
-            e.Depth = depth;
-        }
+        //private void ReplaceIfNotAncient(Entry n, int entry_key, ulong zobristHashKey, int bestMove, int bestValue, AIUtils.ITTEntryFlag flag, int depth)
+        //{
+        //    if (n.Ancient)
+        //    {
+        //        TT[entry_key] = new Entry(zobristHashKey)
+        //        {
+        //            BestMove = bestMove,
+        //            Depth = depth,
+        //            Flag = flag,
+        //            Score = bestValue
+        //        };
+        //    }
+        //}
 
         public void ResetAllAncientFlags()
         {
@@ -141,14 +131,12 @@ namespace SearchEngine
         public ulong zobristHash(BoardState s)
         {
             ulong key = 0;
-            foreach (Cell soldier in s.myGrid)
+            for (int boardIndex = 0; boardIndex < s.Board.Length; boardIndex++)
             {
-                if (soldier.myPiece == CannonUtils.ISoldiers.dark_soldier ||
-                    soldier.myPiece == CannonUtils.ISoldiers.light_soldier ||
-                    soldier.myPiece == CannonUtils.ISoldiers.dark_town ||
-                    soldier.myPiece == CannonUtils.ISoldiers.light_town)
+                CannonUtils.ISoldiers piece = s.Board[boardIndex];
+                if (piece != CannonUtils.ISoldiers.empty)
                 {
-                    key = key ^ Table.SoldierToBitArray(soldier.myRow, soldier.myColumn, soldier.myPiece);
+                    key = key ^ Table.SoldierToBitArray(boardIndex, piece);
                 }
             }
             // Return 20 first bits
@@ -157,12 +145,12 @@ namespace SearchEngine
             return key;
         }
 
-        public ulong zobristHashWithOperations(BoardState state)
+        public ulong zobristHashWithOperations(BoardState s)
         {
             ulong key = rootZobristHash;
-            foreach (Move move in state.myHistory)
+            foreach (Move move in s.plyHistory)
             {
-                switch (move.Type)
+                switch (move.moveType)
                 {
                     case CannonUtils.IMoves.step:
                     case CannonUtils.IMoves.retreat:
@@ -183,12 +171,12 @@ namespace SearchEngine
         /// <summary>
         /// Moving a piece
         /// </summary>
-        private ulong StepRetreatSlide(ulong key, Move state)
+        private ulong StepRetreatSlide(ulong key, Move move)
         {
-            // remove old friend
-            ulong new_empty_cell = Table.SoldierToBitArray(state.OldCell.myRow, state.OldCell.myColumn, state.OldCell.myPiece);
+            // remove start cell
+            ulong new_empty_cell = Table.SoldierToBitArray(move.startIndex, move.startPiece);
             // add new friend
-            ulong soldier_moves_to_here = Table.SoldierToBitArray(state.NewCell.myRow, state.NewCell.myColumn, state.OldCell.myPiece);
+            ulong soldier_moves_to_here = Table.SoldierToBitArray(move.targetIndex, move.startPiece);
             return key ^ new_empty_cell ^ soldier_moves_to_here;
         }
 
@@ -196,21 +184,21 @@ namespace SearchEngine
         /// key = key (^ r_old ^ r_new) ^
         /// three changes: one soldier pops out, one cell becomes empty and one cell gets a new soldier
         /// </summary>
-        private ulong Capture(ulong key, Move state)
+        private ulong Capture(ulong key, Move move)
         {
             // remove captured enemy
-            ulong soldier_captured = Table.SoldierToBitArray(state.NewCell.myRow, state.NewCell.myColumn, state.NewCell.myPiece);
+            ulong soldier_captured = Table.SoldierToBitArray(move.targetIndex, move.targetPiece);
             // remove old friend
-            ulong new_empty_cell = Table.SoldierToBitArray(state.OldCell.myRow, state.OldCell.myColumn, state.OldCell.myPiece);
+            ulong new_empty_cell = Table.SoldierToBitArray(move.startIndex, move.startPiece);
             // add new friend
-            ulong soldier_moves_to_here = Table.SoldierToBitArray(state.NewCell.myRow, state.NewCell.myColumn, state.OldCell.myPiece);
+            ulong soldier_moves_to_here = Table.SoldierToBitArray(move.targetIndex, move.startPiece);
             return key ^ soldier_captured ^ new_empty_cell ^ soldier_moves_to_here;
         }
 
-        private ulong Shoot(ulong key, Move state)
+        private ulong Shoot(ulong key, Move move)
         {
             // remove captured enemy
-            return key ^ Table.SoldierToBitArray(state.NewCell.myRow, state.NewCell.myColumn, state.NewCell.myPiece);
+            return key ^ Table.SoldierToBitArray(move.targetIndex, move.targetPiece);
         }
         #endregion
     }

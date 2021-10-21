@@ -12,10 +12,10 @@ namespace CannonBoardConsole
 {
     class Program
     {
-        static BoardState myBoard;
+        static BoardState root;
 
         /// <summary>
-        /// TODO:
+        ///  color = 1 -> dark
         ///  - your  program  has  to  finish  the  whole  game  within  10minutes own time.
         ///  - OPPONENT (MANUAL USER): Moves of the opponent are entered manually  by  the  operator.
         ///  - YOU (AI): Moves  by  your  program  are  communicated  to  your  opponent.
@@ -27,114 +27,77 @@ namespace CannonBoardConsole
         /// </summary>
         static void Main() 
         {
-            //PlayAIvsManual();
-            PlayAIvsAI();
-        }
+            // ai_dark vs ai_light = 0
+            // ai_dark vs manual_light = 1
+            // manual_dark vs ai_light = 2 
+            bool darkIsAi = false;
+            bool lightIsAi = true;
 
-        public const int Depth = 30;
-
-        /// <summary>
-        /// color = 1 -> dark
-        /// </summary>
-        static void PlayAIvsManual(int color = 1)
-        {
-            // root node
-            myBoard = new BoardState();
-            myBoard.root_init();
-            CannonUtils.printBoard(myBoard, false);
-
-            // init users
-            ManualUser user = new ManualUser();
-            myBoard.AddTown(4, myBoard.myFriend);
-            AISearchEngine ai = new AISearchEngine(AIUtils.IEval.safeMobility, 1, true);
-            myBoard.AddTown(4, myBoard.myFriend);
-
-            Console.WriteLine("Evaluation root node = "+ ai.Evaluate(myBoard));
-
-            // Play game
-            for (int two_turns = 0; two_turns < 1000; two_turns++)
-            {
-                // dark user leads
-                myBoard = color == 1 ? ai.Search(myBoard, Depth) : user.MakeMove(myBoard);
-
-                if (myBoard.terminalState != CannonUtils.INode.leaf)
-                {
-                    string winner = myBoard.terminalState == CannonUtils.INode.dark_wins ? "Dark wins!!!" : "Light wins !!!";
-                    Console.WriteLine(winner);
-                    break;
-                }
-
-                // light user follows
-                myBoard = color == 1 ? user.MakeMove(myBoard) : ai.Search(myBoard, Depth);
-
-                if (myBoard.terminalState != CannonUtils.INode.leaf)
-                {
-                    string winner = myBoard.terminalState == CannonUtils.INode.dark_wins ? "Dark wins!!!" : "Light wins !!!";
-                    Console.WriteLine(winner);
-                    break;
-                }
-            }
-        }
-
-        /// <summary>
-        /// To compare evaluation functions and search times
-        /// </summary>
-        static void PlayAIvsAI()
-        {
             Stopwatch stopWatch = new Stopwatch();
             stopWatch.Start();
 
             // root node
-            myBoard = new BoardState();
-            myBoard.root_init();
-            CannonUtils.printBoard(myBoard, false);
+            root = new BoardState();
+            root.root_init();            
 
-            // Init Players
-            AISearchEngine ai_dark = new AISearchEngine(AIUtils.IEval.dist2EnemyTown, 1, true);
-            AISearchEngine ai_light = new AISearchEngine(AIUtils.IEval.safeMobility, -1, true);
-
-            // add towns
-            myBoard.AddTown(9, myBoard.myFriend);
-            myBoard.AddTown(0, myBoard.myFriend);
-
-            Console.WriteLine("Evaluation root node = " + ai_dark.Evaluate(myBoard));
+            // Dark player
+            MoveManager darkP = new MoveManager(new AISearchEngine(AIUtils.IEval.color, 1));
+            MoveManager lightP = new MoveManager(new AISearchEngine(AIUtils.IEval.safeMobility, -1));
+            Random rand = new Random();
+            darkP.addTown(darkIsAi, root, rand);
+            lightP.addTown(lightIsAi, root, rand);
 
             // Play game
-            for (int two_turns = 0; two_turns < 1000; two_turns++)
+            for (int turn = 0; turn < 1000; turn++)
             {
-                // dark user leads
-                CannonUtils.printBoard(myBoard, false);
-                Console.WriteLine("================================= Turn for Dark");
-                myBoard = ai_dark.Search(myBoard, Depth);
-
-                if (myBoard.terminalState != CannonUtils.INode.leaf)
+                try
                 {
-                    string winner = myBoard.terminalState == CannonUtils.INode.dark_wins ? "Dark wins!!!" : "Light wins !!!";
-                    Console.WriteLine(winner);
-                    break;
+                    Console.WriteLine();
+                    if (!CannonUtils.IsOdd(root.turnCounter))
+                    {
+                        // dark turn
+                        Console.WriteLine("================================= Turn for Dark");
+                        root = darkP.Move(darkIsAi, root);
+                    }
+                    else
+                    {
+                        // light turn
+                        Console.WriteLine("================================= Turn for Light");
+                        root = lightP.Move(lightIsAi, root);
+
+                    }
+                    if (isTerminal(root)) { break; }
+
+                    #region check time
+                    var elapsed = stopWatch.ElapsedMilliseconds;
+                    Console.WriteLine();
+                    Console.WriteLine("Time elapsed: " + elapsed / 1000 + "[s]");
+                    //if (elapsed > 60 * 10 * 1000)
+                    //{
+                    //    Console.WriteLine("Draw!!!");
+                    //    break;
+                    //}
+                    #endregion
                 }
-
-                // light user follows
-                CannonUtils.printBoard(myBoard, false);
-                Console.WriteLine("================================= Turn for Light");
-                myBoard = ai_light.Search(myBoard, Depth);
-
-                if (myBoard.terminalState != CannonUtils.INode.leaf)
+                catch (Exception)
                 {
-                    string winner = myBoard.terminalState == CannonUtils.INode.dark_wins ? "Dark wins!!!" : "Light wins !!!";
-                    Console.WriteLine(winner);
-                     break;
-                }
-                var elapsed = stopWatch.ElapsedMilliseconds;
-                Console.WriteLine("Time elapsed: " +  elapsed/ 1000 + "[s]");    
-                if(elapsed > 60 * 10 * 1000)
-                {
-                    Console.WriteLine("Draw!!!");
-                    break;
+                    Console.WriteLine("****************Error****************");
+                    Console.WriteLine("Try again");
                 }
             }
-            CannonUtils.printBoard(myBoard, false);
+            CannonUtils.printBoard(root, false);
             Console.ReadLine();
+        }
+
+        static bool isTerminal(BoardState myBoard)
+        {
+            if (myBoard.terminalFlag != CannonUtils.INode.leaf)
+            {
+                string winner = myBoard.terminalFlag == CannonUtils.INode.dark_wins ? "Dark wins!!!" : "Light wins !!!";
+                Console.WriteLine(winner);
+                return true;
+            }
+            else { return false; }
         }
     }
 }

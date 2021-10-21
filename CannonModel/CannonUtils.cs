@@ -7,39 +7,43 @@ namespace CannonModel
 {
     public static class CannonUtils
     {
-
-        public static bool movesAreEqual(Move a, Move b)
-        {
-            if(a.Type == b.Type && 
-                a.OldCell.myRow == b.OldCell.myRow && a.OldCell.myColumn == b.OldCell.myColumn &&
-                a.NewCell.myRow == b.NewCell.myRow && a.NewCell.myColumn == b.NewCell.myColumn)
-            {
-                return true;
-            }
-            else { return false; }
-        }
-        public static int ChebyshevDistance(Cell soldier, Cell town)
-        {
-            return Math.Abs(soldier.myRow - soldier.myRow) + Math.Abs(soldier.myColumn - soldier.myColumn);
-        }
-
-        public static bool compareMoves(Move a, Move b)
-        {
-            if (a != null && b != null &&
-                a.OldCell.myRow == b.OldCell.myRow &&
-                a.OldCell.myColumn == b.OldCell.myColumn &&
-                a.NewCell.myRow == b.NewCell.myRow &&
-                a.NewCell.myColumn == b.NewCell.myColumn &&
-                a.Type == b.Type)
-            {
-                return true;
-            }
-            else { return false; }
-        }
+        private static readonly string savePath = @"D:/UM/ISG/search_engine_cannon/board.txt";
 
         public static bool IsOdd(int value)
         {
             return value % 2 != 0;
+        }
+
+        public static bool saveBoard(BoardState s)
+        {
+            List<string> Freds = s.Board.Select(tb => ((int)tb + "")).ToList();
+            Freds.Insert(0, 25.ToString());
+
+            System.IO.File.WriteAllText(savePath, 25.ToString());
+            System.IO.File.WriteAllLines(savePath, Freds);
+            return true;
+        }
+
+        public static BoardState readBoard(BoardState s)
+        {
+            ISoldiers[] board = new ISoldiers[100];
+            int turnCount = 0;
+            // Read the file   
+            int square = 0;
+            foreach (string line in System.IO.File.ReadLines(savePath))
+            {
+                if(square == 0) { turnCount = Int32.Parse(line); }
+                else
+                {
+                    board[square] = (ISoldiers)Int32.Parse(line);
+                }
+                square ++;
+            }
+            s.Board = board;
+            s.turnCounter = turnCount;
+            s.generateLegalMoves();
+
+            return s;
         }
 
         /// <summary>
@@ -111,61 +115,70 @@ namespace CannonModel
         }
 
         public static int Size = 10; // Board size
-        public static readonly int[] ColumnLightSoldiers = { 1, 3, 5, 7, 9 }; // Initial row and column values foreach soldier color
-        public static readonly int[] RowLightSoldiers = { 6, 7, 8 };
-        public static readonly int[] ColumnDarkSoldiers = { 0, 2, 4, 6, 8 };
-        public static readonly int[] RowDarkSoldiers = { 1, 2, 3 };
+        public static readonly int[] rootDark = {10, 12, 14, 16, 18,
+                                                 20, 22, 24, 26, 28,
+                                                 30, 32, 34, 36, 38 };
+
+        public static readonly int[] rootLight = {61, 63, 65, 67, 69,
+                                                  71, 73, 75, 77, 79,
+                                                  81, 83, 85, 87, 89 };
+
+        public static readonly string[] columnChar = { "A", "B", "C", "D", "E", "F", "G", "H", "I", "J" };
 
         #region printMethods
         public static void printBoard(BoardState s, bool printNumbers = true)
         {
-            string[] columnChar = { "A", "B", "C", "D", "E", "F", "G", "H", "I", "J" };
-            Console.WriteLine("Counter:" + s.turnCounter);
+            Console.WriteLine();
+            Console.WriteLine("- Turn counter = " + s.turnCounter);
+            Console.WriteLine("- # Dark pieces = " + s.boardCounter.darkPieceList.Count);
+            Console.WriteLine("- # Light pieces = " + s.boardCounter.lightPieceList.Count);
+
             Console.WriteLine();
             Console.Write("   ");
             for (int i = 0; i < columnChar.Length; i++) { Console.Write(columnChar[i]); Console.Write("   "); }
             Console.WriteLine();
+
             int counter = 0;
-            for (int i = 10 - 1; i >= 0; i--)
+            for (int row = 10 - 1; row >= 0; row--)
             {
-                Console.Write(i + 1);
+                Console.Write(row + 1);
                 Console.Write(" ");
-                if (i != 9) { Console.Write(" "); }
-                for (int j = 0; j < 10; j++)
+                if (row != 9) { Console.Write(" "); }
+                for (int column = 0; column < 10; column++)
                 {
-                    Cell c = s.myGrid[i, j];
-                    if (CannonUtils.IsOdd(s.turnCounter))
+                    int boardIndex = row * 10 + column;
+                    ISoldiers cell = s.Board[boardIndex];
+
+                    if (IsOdd(s.turnCounter))
                     {
                         // Light soldiers turn (p2)
-                        if (c.myPiece == CannonUtils.ISoldiers.dark_soldier) { Console.Write("X"); }
-                        else if (c.myPiece == CannonUtils.ISoldiers.light_soldier) 
+                        if (cell == ISoldiers.dark_soldier) { Console.Write("X"); }
+                        else if (cell == ISoldiers.light_soldier) 
                         {
                             if (printNumbers) { Console.Write(counter); counter++; }
                             else { Console.Write("O"); }
-                            
-                        
                         }
-                        else if (c.myPiece == CannonUtils.ISoldiers.dark_town || c.myPiece == CannonUtils.ISoldiers.light_town) { Console.Write("T"); }
-                        else if (c.myPiece == CannonUtils.ISoldiers.empty) { Console.Write("·"); }
+                        else if (cell == ISoldiers.dark_town || cell == ISoldiers.light_town) { Console.Write("T"); }
+                        else if (cell == ISoldiers.empty) { Console.Write("·"); }
 
                     }
                     else
                     {
-                        if (c.myPiece == CannonUtils.ISoldiers.dark_soldier) 
+                        if (cell == ISoldiers.dark_soldier) 
                         {
                             if (printNumbers) { Console.Write(counter); counter++; }
                             else { Console.Write("X"); }
                              
                         }
-                        else if (c.myPiece == CannonUtils.ISoldiers.light_soldier) { Console.Write("O"); }
-                        else if (c.myPiece == CannonUtils.ISoldiers.dark_town || c.myPiece == CannonUtils.ISoldiers.light_town) { Console.Write("T"); }
-                        else if (c.myPiece == CannonUtils.ISoldiers.empty) { Console.Write("·"); }
+                        else if (cell == ISoldiers.light_soldier) { Console.Write("O"); }
+                        else if (cell == ISoldiers.dark_town || cell == ISoldiers.light_town) { Console.Write("T"); }
+                        else if (cell == ISoldiers.empty) { Console.Write("·"); }
                     }
-                    if (j != 9) { Console.Write(" - "); }
+                    if (column != 9) { Console.Write(" - "); }
 
                 }
                 Console.WriteLine();
-                if (i != 0)
+                if (row != 0)
                 {
                     Console.Write(" ");
                     for (int j = 0; j < 10; j++)
@@ -181,42 +194,42 @@ namespace CannonModel
 
         }
 
-        public static void printBoardWithMoves(BoardState s, Cell chosen)
+        public static void printBoardWithMoves(BoardState s, int chosenSquare)
         {
-            string[] columnChar = { "A", "B", "C", "D", "E", "F", "G", "H", "I", "J" };
-            Console.WriteLine("================================= Counter:" + s.turnCounter);
             Console.WriteLine();
             Console.Write("   ");
             for (int i = 0; i < columnChar.Length; i++) { Console.Write(columnChar[i]); Console.Write("   "); }
             Console.WriteLine();
 
-            List<Move> list = s.legalMoves.Where(x => x.OldCell.myRow == chosen.myRow && x.OldCell.myColumn == chosen.myColumn).ToList();
-            for (int i = 10 - 1; i >= 0; i--)
+            List<Move> moveList = s.legalMoves.Where(x => x.startIndex == chosenSquare).ToList();
+
+            for (int row = 10 - 1; row >= 0; row--)
             {
-                Console.Write(i + 1);
+                Console.Write(row + 1);
                 Console.Write(" ");
-                if (i != 9) { Console.Write(" "); }
-                for (int j = 0; j < 10; j++)
+                if (row != 9) { Console.Write(" "); }
+                for (int column = 0; column < 10; column++)
                 {
-                    Cell c = s.myGrid[i, j];
-                    Move mm = list.Where(x => x.NewCell.myRow == c.myRow && x.NewCell.myColumn == c.myColumn).FirstOrDefault();
-                    if (c == chosen) { Console.Write("S"); }
+                    int boardIndex = row * 10 + column;
+                    ISoldiers cell = s.Board[boardIndex]; 
+                    Move mm = moveList.Where(x => x.targetIndex == boardIndex).FirstOrDefault();
+
+                    if (boardIndex == chosenSquare) { Console.Write("S"); }
                     else if (mm != null)
                     {
-                        if (mm.Type == CannonUtils.IMoves.step) { Console.Write("m"); }
-                        else if (mm.Type == CannonUtils.IMoves.retreat) { Console.Write("r"); }
-                        else if (mm.Type == CannonUtils.IMoves.capture) { Console.Write("k"); }
-                        else if (mm.Type == CannonUtils.IMoves.slideCannon) { Console.Write("s"); }
+                        if (mm.moveType == CannonUtils.IMoves.step) { Console.Write("m"); }
+                        else if (mm.moveType == CannonUtils.IMoves.retreat) { Console.Write("r"); }
+                        else if (mm.moveType == CannonUtils.IMoves.capture) { Console.Write("k"); }
+                        else if (mm.moveType == CannonUtils.IMoves.slideCannon) { Console.Write("s"); }
                     }
-                    else if (c.myPiece == CannonUtils.ISoldiers.dark_soldier) { Console.Write("X"); }
-                    else if (c.myPiece == CannonUtils.ISoldiers.light_soldier) { Console.Write("O"); }
-                    else if (c.myPiece == CannonUtils.ISoldiers.dark_town || c.myPiece == CannonUtils.ISoldiers.light_town) { Console.Write("T"); }
-                    else if (c.myPiece == CannonUtils.ISoldiers.empty) { Console.Write("·"); }
-                    if (j != 9) { Console.Write(" - "); }
-
+                    else if (cell == CannonUtils.ISoldiers.dark_soldier) { Console.Write("X"); }
+                    else if (cell == CannonUtils.ISoldiers.light_soldier) { Console.Write("O"); }
+                    else if (cell == CannonUtils.ISoldiers.dark_town || cell == CannonUtils.ISoldiers.light_town) { Console.Write("T"); }
+                    else if (cell == CannonUtils.ISoldiers.empty) { Console.Write("·"); }
+                    if (column != 9) { Console.Write(" - "); }
                 }
                 Console.WriteLine();
-                if (i != 0)
+                if (row != 0)
                 {
                     Console.Write(" ");
                     for (int j = 0; j < 10; j++)
@@ -230,7 +243,6 @@ namespace CannonModel
             Console.WriteLine();
             Console.WriteLine("Soldiers legend: X = Dark Soldier, O = Light Soldier, T = Town, · = empty cell");
             Console.WriteLine("Available Moves legend: m = step, r = retreat, k = capture, s = slide");
-            Console.WriteLine("=================================");
 
         }
 
@@ -259,14 +271,19 @@ namespace CannonModel
 
         public static void printMove(Move move, int count)
         {
-            string oldrow = (move.OldCell.myRow + 1).ToString();
-            string newrow = (move.NewCell.myRow + 1).ToString();
-            string oldcol = intToColumn(move.OldCell.myColumn);
-            string newcol = intToColumn(move.NewCell.myColumn);
+            int old_row = move.startIndex / 10;
+            int new_row = move.targetIndex / 10;
+            int old_column = move.startIndex - old_row * 10;
+            int new_column = move.targetIndex - new_row * 10;
+
+            string oldrow = (old_row + 1).ToString();
+            string newrow = ((move.targetIndex / 10) + 1).ToString();
+            string oldcol = intToColumn(old_column);
+            string newcol = intToColumn(new_column);
             string oldc = oldcol + oldrow;
             string newc = newcol + newrow;
             string sentence = oldc + " to " + newc;
-            switch (move.Type)
+            switch (move.moveType)
             {
                 case CannonUtils.IMoves.step:
                     Console.WriteLine(count + "     - STEP " + sentence);

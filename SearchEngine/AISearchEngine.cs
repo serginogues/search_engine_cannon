@@ -14,63 +14,63 @@ namespace SearchEngine
     /// </summary>
     public class AISearchEngine
     {
-        /// <summary>
-        /// Transposition table
-        /// </summary>
-        private TranspositionTable myTT { get; set; }
+        private TranspositionTable myTT;
         /// <summary>
         /// killerMoves[ply][slot]
         /// https://stackoverflow.com/questions/17692867/implementing-killer-heuristic-in-alpha-beta-search-in-chess
         /// </summary>
-        //private Move[,] killerMoves { get; set; }
-        private int myColor { get; set; }
-        public static Random rand { get; set; }
-        public AIUtils.IEval eval_f { get; set; }
-        private bool isMultiCut { get; set; }
+        private Move[,] killerMoves { get; set; }
+        private readonly int myColor;
+        private readonly AIUtils.IEval evaluationF;
+        private readonly bool isMultiCut;
+        private readonly bool isKillerHeuristics;
+        private const int searchDepth = 30;
 
-        // private List<EvaluatedNode> moveEvaluationList { get; set; } 
+        //private List<EvaluatedNode> moveEvaluationList { get; set; } 
 
         #region counters
         private int nodesEvaluated { get; set; }
         private int prunnings { get; set; }
         private int multi_cut_prunnings { get; set; }
+        private int tt_prunings { get; set; }
         #endregion
 
-        public AISearchEngine(AIUtils.IEval function, int color, bool is_multi_cut = true)
+        public AISearchEngine(AIUtils.IEval function, int color, bool is_multi_cut = true, bool isKiller = true)
         {
-            eval_f = function;
+            evaluationF = function;
             myColor = color;
             isMultiCut = is_multi_cut;
+            isKillerHeuristics = isKiller;
         }
 
-        public BoardState Search(BoardState root, int depth)
+        public BoardState Search(BoardState root)
         {
-            rand = new Random();
+            CannonUtils.printBoard(root, false);
             Console.WriteLine();
-            myTT = new TranspositionTable(root);
-            //killerMoves = new Move[100, 2]; // make big enough and save best two killer moves per ply
 
-            if (myColor == 1) { Console.WriteLine("DARK AI's TURN"); }
-            else { Console.WriteLine("LIGHT AI's TURN"); }
+            myTT = new TranspositionTable(root);
+            killerMoves = new Move[100,2]; // make big enough and save best two killer moves per ply
 
             Stopwatch stopWatch = new Stopwatch();
             stopWatch.Start();
 
+            nodesEvaluated = 0;
+            prunnings = 0;
+            multi_cut_prunnings = 0;
+            tt_prunings = 0;
+
             int[] values = new int[2];
             // Iterative-deepening
-            for (int d = 1; d <= depth; d++)
+            for (int d = 1; d <= searchDepth; d++)
             {
-                nodesEvaluated = 0;
-                prunnings = 0;
-                multi_cut_prunnings = 0;
                 values = AlphaBetaWithTT(root, -1000000, 100000, d, myColor, 0);
-
                 var elapsed = stopWatch.ElapsedMilliseconds;
                 Console.WriteLine("Depth = " + d +
                     ", Nodes Evaluated = " + nodesEvaluated +
-                    " in " + elapsed.ToString() + "[ms]" +
-                    ", ab prunings = " + prunnings +
-                    ", multi-cut prunings = " + multi_cut_prunnings +
+                    " after " + elapsed.ToString() + "[ms]" +
+                    ", ab prunings = " + Math.Round(((float)prunnings/nodesEvaluated)*100, 1) +"%" +
+                    ", TT prunings = " + Math.Round(((float)tt_prunings / nodesEvaluated) * 100, 1) + "%" +
+                    ", multi-cut prunings = " + Math.Round(((float)multi_cut_prunnings / nodesEvaluated) * 100, 1) + "%" +
                     ", TT entries = " + myTT.TT.ToList().Where(x => x != null).ToList().Count);
 
                 if (elapsed > 2000)
@@ -85,6 +85,7 @@ namespace SearchEngine
             //CannonUtils.printLegalMovesWithScore(newEvaluatedL.Select(x => x.move).ToList(), newEvaluatedL.Select(x => x.value).ToList());
             //Console.WriteLine("AI optimal move:");
             //--------
+            Console.WriteLine();
             CannonUtils.printMove(root.legalMoves[bestMove], bestMove);
             BoardState new_s = root.Successor(bestMove);
 
@@ -97,14 +98,10 @@ namespace SearchEngine
         /// </summary>
         private int[] AlphaBetaWithTT(BoardState s, int alpha, int beta, int depth, int color, int ply)
         {
-            
-            // save original alpha value
-            int olda = alpha;
             nodesEvaluated++;
-
             //moveEvaluationList = new List<EvaluatedNode>();
 
-            #region Transposition-table lookup
+            #region TT
             Entry n = myTT.TableLookup(s);
             if (n.Depth >= depth)
             {
@@ -114,16 +111,18 @@ namespace SearchEngine
                 else if (n.Flag == AIUtils.ITTEntryFlag.upper_bound) { beta = n.Score < beta ? n.Score : beta; }
                 if (alpha >= beta)
                 {
-                    prunnings++;
+                    tt_prunings++;
                     return new int[] { n.Score, n.BestMove };
                 }
             }
             #endregion
 
             // Terminal or Leaf node
-            if (depth == 0 || s.terminalState != CannonUtils.INode.leaf) { return new int[] { Evaluate(s) * color, 0 }; }
+            if (depth == 0 || s.terminalFlag != CannonUtils.INode.leaf) { return new int[] { Evaluation.Evaluate(s, evaluationF) * color, 0 }; }
 
             // We could not cut-off with TT entry so we need to investigate deeper
+            // save original alpha value
+            int olda = alpha;
             int bestValue = -100000000;
             int bestMove = 0;
             int n_moves = s.legalMoves.Count;
@@ -142,7 +141,7 @@ namespace SearchEngine
                 {
                     int new_depth = depth - 1 - R;
                     if (new_depth < 0) { new_depth = 0; }
-                    int result = -AlphaBetaWithTT(s.Successor(m), -beta, -alpha, new_depth, -color, ply+1)[0];
+                    int result = -AlphaBetaWithTT(s.Successor(m), -beta, -alpha, new_depth, -color, ply + 1)[0];
                     if (result > bestValue)
                     {
                         bestValue = result;
@@ -169,28 +168,34 @@ namespace SearchEngine
             bestMove = 0;
 
             #region Killer Heuristics
-            // killer Move after TT bestMove
-            //for (int slot = 0; slot < 2; slot++)
-            //{
-            //    Move killerMove = killerMoves[ply,slot];
+            if (isKillerHeuristics)
+            {
+                for (int slot = 0; slot < 2; slot++)
+                {
+                    if (killerMoves[ply, slot] != null)
+                    {
+                        Move killerMove = killerMoves[ply, 0];
+                        int killIndex = s.legalMoves.FindIndex(x => x.startIndex == killerMove.startIndex &&
+                                                                            x.targetIndex == killerMove.targetIndex &&
+                                                                            x.moveType == killerMove.moveType);
 
-            //    for (int i = 0; i < s.legalMoves.Count; i++)
-            //        if (CannonUtils.movesAreEqual(s.legalMoves[i], killerMove))
-            //        {
-            //            // moves[i] is a killer move so move it up the list
-            //            successor_list.Insert(0, i);
-            //            successor_list.RemoveAt(i);
-            //            break;
-            //        }
-            //}
+                        if (killIndex != -1)
+                        {
+                            successor_list.Insert(0, killIndex);
+                            successor_list.RemoveAt(killIndex);
+                            break;
+                        }
+                    }
+                }
+            }
             #endregion
 
             // TT move ordering
-            if (n.Depth != -1 && bestMove < n_moves)
+            if (n.Depth != -1 && n.BestMove < n_moves)
             {
                 // if the TT does not give a cutoff, we play the best move as first
-                successor_list.Insert(0, bestMove);
-                successor_list.RemoveAt(bestMove);
+                successor_list.Insert(0, n.BestMove);
+                successor_list.RemoveAt(n.BestMove);
             }
 
             // if position is not found, n.depth will be -1
@@ -202,7 +207,9 @@ namespace SearchEngine
             {
                 BoardState newState = s.Successor(child);
                 int result = -AlphaBetaWithTT(newState, -beta, -alpha, depth - 1, -color, ply + 1)[0];
-                //scoreList.Add(new EvaluatedNode() {depth=depth, move=s.FriendLegalMoves[child], value=result });
+
+                //scoreList.Add(new EvaluatedNode() {depth=depth, move=s.legalMoves[child], value=result });
+
                 if (result > bestValue)
                 {
                     bestValue = result;
@@ -212,8 +219,8 @@ namespace SearchEngine
                 if (bestValue >= beta)
                 {
                     // Killer move ordering and insert new move
-                    //killerMoves[ply,1] = killerMoves[ply,0];
-                    //killerMoves[ply, 0] = newState.legalMoves[bestMove];
+                    killerMoves[ply,1] = killerMoves[ply,0];
+                    killerMoves[ply,0] = s.legalMoves[child];
 
                     prunnings++;
                     break;
@@ -233,39 +240,10 @@ namespace SearchEngine
             return new int[] { bestValue, bestMove };
         }
 
-        /// <summary>
-        /// Evaluate given Board position
-        /// Must return a score relative to the side to being evaluated
-        /// </summary>
-        public int Evaluate(BoardState s)
-        {
-            if (s.terminalState != CannonUtils.INode.leaf)
-            {
-                // terminal node
-                int score = 100000;
-                return s.terminalState == CannonUtils.INode.light_wins? -score : score;
-            }
-            else
-            {
-                switch (eval_f)
-                {
-                    case AIUtils.IEval.color:
-                        return Evaluation.byColor(s);
-                    case AIUtils.IEval.dist2EnemyTown:
-                        return Evaluation.evalByTypeAndDistanceToTown(s);
-                    case AIUtils.IEval.mobility:
-                        return Evaluation.mobility(s);
-                    case AIUtils.IEval.safeMobility:
-                        return Evaluation.safe_mobility(s);
-                }
-                return 0;
-            }
-        }
-
         public void SetTowns(BoardState myBoard, bool auto = true)
         {
-            myBoard.AddTown(5, myBoard.myFriend);
-            myBoard.AddTown(4, myBoard.myFriend);
+            myBoard.AddTown(5, myBoard.friendSoldier);
+            myBoard.AddTown(4, myBoard.friendSoldier);
         }
     }
 

@@ -8,71 +8,104 @@ namespace SearchEngine
 {
     public static class Evaluation
     {
-        public static int byColor(BoardState s)
+        /// <summary>
+        /// Evaluate given Board position
+        /// Must return a score relative to the side to being evaluated
+        /// </summary>
+        public static int Evaluate(BoardState s, AIUtils.IEval eval_f)
         {
-            int n_dark = s.soldierList.Count(x => x.myPiece == CannonUtils.ISoldiers.dark_soldier);
-            int n_light = s.soldierList.Count(x => x.myPiece == CannonUtils.ISoldiers.light_soldier);
-            return (n_dark - n_light) * 10;
-        }
-
-        public static int evalByTypeAndDistanceToTown(BoardState s)
-        {
-            int score = 0;
-            foreach (Cell soldier in s.soldierList)
+            if (s.terminalFlag != CannonUtils.INode.leaf)
             {
-                if(soldier.myPiece == CannonUtils.ISoldiers.dark_soldier) 
-                { 
-                    score = score + CannonUtils.ChebyshevDistance(soldier, s.lightTown) * -10; 
-                }
-                else
-                {
-                    score = score - CannonUtils.ChebyshevDistance(soldier, s.darkTown) * -10;
-                }
-            }
-            return score;
-        }
-
-        public static int mobility(BoardState s)
-        {
-            BoardState s2 = s.DeepCopy();
-            s2.turnCounter++;
-            s2.initLegalMoves();
-
-            int n_dark = s.myFriend == CannonUtils.ISoldiers.dark_soldier ? s.legalMoves.Count : s2.legalMoves.Count;
-            int n_light = s.myFriend == CannonUtils.ISoldiers.dark_soldier ? s2.legalMoves.Count : s.legalMoves.Count;
-
-            return (n_dark - n_light) * 10;
-        }
-
-        public static int safe_mobility(BoardState s) 
-        {
-            BoardState s2 = s.DeepCopy();
-            s2.turnCounter++;
-            s2.initLegalMoves();
-            BoardState s_dark;
-            BoardState s_light;
-            if (s.myFriend == CannonUtils.ISoldiers.dark_soldier)
-            {
-                s_dark = s;
-                s_light = s2;
+                // terminal node
+                int score = 100000;
+                return s.terminalFlag == CannonUtils.INode.light_wins ? -score : score;
             }
             else
             {
-                s_dark = s2;
-                s_light = s;
+                switch (eval_f)
+                {
+                    case AIUtils.IEval.color:
+                        return (s.boardCounter.darkPieceList.Count - s.boardCounter.lightPieceList.Count) * 10;
+                    case AIUtils.IEval.dist2EnemyTown:
+                        return Evaluation.dist2Town(s);
+                    case AIUtils.IEval.mobility:
+                        return Evaluation.mobility(s);
+                    case AIUtils.IEval.safeMobility:
+                        return Evaluation.safeMobility(s);
+                }
+                return 0;
+            }
+        }
+
+
+        private static int dist2Town(BoardState s)
+        {
+            int dark_score = 0;
+            int light_score = 0;
+            foreach (int soldier in s.boardCounter.darkPieceList)
+            {
+                dark_score += (9 - AIUtils.ChebyshevDistance(soldier, s.lightTown)) * 10;
+            }
+            foreach (int soldier in s.boardCounter.lightPieceList)
+            {
+                light_score += (9 - AIUtils.ChebyshevDistance(soldier, s.darkTown)) * 10;
+            }
+            return dark_score - light_score;
+        }
+
+        private static int mobility(BoardState s)
+        {
+            BoardState sNext = s.DeepCopy();
+            sNext.turnCounter++;
+            sNext.generateLegalMoves();
+
+            int n_dark;
+            int n_light;
+            if (s.friendSoldier == CannonUtils.ISoldiers.dark_soldier)
+            {
+                n_dark = s.legalMoves.Count;
+                n_light = sNext.legalMoves.Count;
+            }
+            else
+            {
+                n_dark = sNext.legalMoves.Count;
+                n_light = s.legalMoves.Count;
+            }
+
+            return (n_dark - n_light) * 10;
+        }
+
+        private static int safeMobility(BoardState s) 
+        {
+            BoardState s2 = s.DeepCopy();
+            s2.turnCounter++;
+            s2.generateLegalMoves();
+            BoardState darkState;
+            BoardState lightState;
+            if (s.friendSoldier == CannonUtils.ISoldiers.dark_soldier)
+            {
+                darkState = s;
+                lightState = s2;
+            }
+            else
+            {
+                darkState = s2;
+                lightState = s;
             }
 
             // dark
-            int dark_score = 10 * s_dark.legalMoves.Count(x => x.Type == CannonUtils.IMoves.step);
-            dark_score = dark_score + 50 * s_dark.legalMoves.Count(x => x.Type == CannonUtils.IMoves.shootCannon);
-            dark_score = dark_score + 40 * s_dark.legalMoves.Count(x => x.Type == CannonUtils.IMoves.capture);
-            dark_score = dark_score + 1000 * s_dark.legalMoves.Count(x => x.NewCell.myPiece == CannonUtils.ISoldiers.light_town);
+            BoardCounter s_dark = darkState.boardCounter;
+            int dark_score = 10 * s_dark.moveTypeCounter[(int)CannonUtils.IMoves.step];
+            dark_score += 50 * s_dark.moveTypeCounter[(int)CannonUtils.IMoves.shootCannon];
+            dark_score += 40 * s_dark.moveTypeCounter[(int)CannonUtils.IMoves.capture];
+            dark_score += darkState.legalMoves.Any(x => x.targetIndex == darkState.lightTown) ? 1000 : 0;
 
             // light
-            int light_score = 10 * s_light.legalMoves.Count(x => x.Type == CannonUtils.IMoves.step);
-            light_score = light_score + 50 * s_light.legalMoves.Count(x => x.Type == CannonUtils.IMoves.shootCannon);
-            light_score = light_score + 40 * s_light.legalMoves.Count(x => x.Type == CannonUtils.IMoves.capture);
-            light_score = light_score + 1000 * s_light.legalMoves.Count(x => x.NewCell.myPiece == CannonUtils.ISoldiers.dark_town);
+            BoardCounter s_light = lightState.boardCounter;
+            int light_score = 10 * s_light.moveTypeCounter[(int)CannonUtils.IMoves.step];
+            light_score += 50 * s_light.moveTypeCounter[(int)CannonUtils.IMoves.shootCannon];
+            light_score += 40 * s_light.moveTypeCounter[(int)CannonUtils.IMoves.capture];
+            light_score += lightState.legalMoves.Any(x => x.targetIndex == lightState.darkTown) ? 1000 : 0;
 
             return dark_score - light_score;
         }

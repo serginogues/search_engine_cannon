@@ -9,6 +9,17 @@ namespace SearchEngine
 {
     public static class AIUtils
     {
+        public static int ChebyshevDistance(int soldier, int town)
+        {
+            int s_row = soldier / 10;
+            int s_column = soldier - s_row * 10;
+
+            int town_row = town / 10;
+            int town_column = town - town_row * 10;
+
+            return Math.Abs(s_row - town_row) + Math.Abs(s_column - town_column);
+        }
+
         /// <summary>
         /// Evaluation function type
         /// </summary>
@@ -32,7 +43,7 @@ namespace SearchEngine
         {
 
             // leaf node?
-            if (depth == 0 || s.terminalState != CannonUtils.INode.leaf)
+            if (depth == 0 || s.terminalFlag != CannonUtils.INode.leaf)
             {
                 return 0;
             }
