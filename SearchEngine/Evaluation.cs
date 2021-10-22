@@ -12,25 +12,25 @@ namespace SearchEngine
         /// Evaluate given Board position
         /// Must return a score relative to the side to being evaluated
         /// </summary>
-        public static int Evaluate(BoardState s, AIUtils.IEval eval_f)
+        public static int Evaluate(BoardState s, AIUtils.eEval eval_f)
         {
-            if (s.terminalFlag != CannonUtils.INode.leaf)
+            if (s.terminalFlag != CannonUtils.eNode.leaf)
             {
                 // terminal node
                 int score = 100000;
-                return s.terminalFlag == CannonUtils.INode.light_wins ? -score : score;
+                return s.terminalFlag == CannonUtils.eNode.light_wins ? -score : score;
             }
             else
             {
                 switch (eval_f)
                 {
-                    case AIUtils.IEval.color:
+                    case AIUtils.eEval.color:
                         return (s.boardCounter.darkPieceList.Count - s.boardCounter.lightPieceList.Count) * 10;
-                    case AIUtils.IEval.dist2EnemyTown:
+                    case AIUtils.eEval.dist2EnemyTown:
                         return Evaluation.dist2Town(s);
-                    case AIUtils.IEval.mobility:
+                    case AIUtils.eEval.mobility:
                         return Evaluation.mobility(s);
-                    case AIUtils.IEval.safeMobility:
+                    case AIUtils.eEval.safeMobility:
                         return Evaluation.safeMobility(s);
                 }
                 return 0;
@@ -61,7 +61,7 @@ namespace SearchEngine
 
             int n_dark;
             int n_light;
-            if (s.friendSoldier == CannonUtils.ISoldiers.dark_soldier)
+            if (s.friendSoldier == CannonUtils.eSoldiers.dark_soldier)
             {
                 n_dark = s.legalMoves.Count;
                 n_light = sNext.legalMoves.Count;
@@ -82,7 +82,7 @@ namespace SearchEngine
             s2.generateLegalMoves();
             BoardState darkState;
             BoardState lightState;
-            if (s.friendSoldier == CannonUtils.ISoldiers.dark_soldier)
+            if (s.friendSoldier == CannonUtils.eSoldiers.dark_soldier)
             {
                 darkState = s;
                 lightState = s2;
@@ -95,16 +95,16 @@ namespace SearchEngine
 
             // dark
             BoardCounter s_dark = darkState.boardCounter;
-            int dark_score = 10 * s_dark.moveTypeCounter[(int)CannonUtils.IMoves.step];
-            dark_score += 50 * s_dark.moveTypeCounter[(int)CannonUtils.IMoves.shootCannon];
-            dark_score += 40 * s_dark.moveTypeCounter[(int)CannonUtils.IMoves.capture];
+            int dark_score = 10 * s_dark.moveTypeCounter[(int)CannonUtils.eMoves.step];
+            dark_score += 50 * s_dark.moveTypeCounter[(int)CannonUtils.eMoves.shootCannon];
+            dark_score += 40 * s_dark.moveTypeCounter[(int)CannonUtils.eMoves.capture];
             dark_score += darkState.legalMoves.Any(x => x.targetIndex == darkState.lightTown) ? 1000 : 0;
 
             // light
             BoardCounter s_light = lightState.boardCounter;
-            int light_score = 10 * s_light.moveTypeCounter[(int)CannonUtils.IMoves.step];
-            light_score += 50 * s_light.moveTypeCounter[(int)CannonUtils.IMoves.shootCannon];
-            light_score += 40 * s_light.moveTypeCounter[(int)CannonUtils.IMoves.capture];
+            int light_score = 10 * s_light.moveTypeCounter[(int)CannonUtils.eMoves.step];
+            light_score += 50 * s_light.moveTypeCounter[(int)CannonUtils.eMoves.shootCannon];
+            light_score += 40 * s_light.moveTypeCounter[(int)CannonUtils.eMoves.capture];
             light_score += lightState.legalMoves.Any(x => x.targetIndex == lightState.darkTown) ? 1000 : 0;
 
             return dark_score - light_score;

@@ -18,7 +18,7 @@ namespace SearchEngine
         /// However in the events that an alpha beta cut-off occurs we can’t use the score as an exact score.  
         /// An Alpha Node Type means the value of the node was at most equal to Score.  The Beta Node Type means the value is at leastequal to score. 
         /// </summary>
-        public AIUtils.ITTEntryFlag Flag { get; set; }
+        public AIUtils.eTTEntryFlag Flag { get; set; }
         public int BestMove { get; set; }
         /// <summary>
         /// The depth remaining in the alpha beta search.  So depth 5 would mean the score is recorded for a 5 ply search.
@@ -37,7 +37,7 @@ namespace SearchEngine
         public Entry(ulong key_)
         {
             Score = 0;
-            Flag = AIUtils.ITTEntryFlag.exact_value;
+            Flag = AIUtils.eTTEntryFlag.exact_value;
             BestMove = 0;
             Depth = 0;
             zobristHashKey = key_;

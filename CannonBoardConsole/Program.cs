@@ -30,7 +30,7 @@ namespace CannonBoardConsole
             // ai_dark vs ai_light = 0
             // ai_dark vs manual_light = 1
             // manual_dark vs ai_light = 2 
-            bool darkIsAi = true;
+            bool darkIsAi = false;
             bool lightIsAi = false;
 
             Stopwatch stopWatch = new Stopwatch();
@@ -41,8 +41,8 @@ namespace CannonBoardConsole
             root.root_init();            
 
             // Dark player
-            MoveManager darkP = new MoveManager(new AISearchEngine(AIUtils.IEval.safeMobility, 1));
-            MoveManager lightP = new MoveManager(new AISearchEngine(AIUtils.IEval.safeMobility, -1));
+            MoveManager darkP = new MoveManager(new AISearchEngine(AIUtils.eEval.safeMobility, 1));
+            MoveManager lightP = new MoveManager(new AISearchEngine(AIUtils.eEval.safeMobility, -1));
             Random rand = new Random();
             darkP.addTown(darkIsAi, root, rand);
             lightP.addTown(lightIsAi, root, rand);
@@ -60,14 +60,14 @@ namespace CannonBoardConsole
                         // dark turn
                         Console.WriteLine("================================= Turn for Dark");
                         root = darkP.Move(darkIsAi, root);
-                        root = UndoMove() ? stateCopy : root;
+                        root = options(stateCopy, root);
                     }
                     else
                     {
                         // light turn
                         Console.WriteLine("================================= Turn for Light");
                         root = lightP.Move(lightIsAi, root);
-                        root = UndoMove() ? stateCopy : root;
+                        root = options(stateCopy, root);
 
                     }
                     if (isTerminal(root)) { break; }
@@ -93,28 +93,41 @@ namespace CannonBoardConsole
             Console.ReadLine();
         }
 
-        static bool UndoMove()
+        static BoardState options(BoardState undoState, BoardState currentState)
         {
-            Console.WriteLine("Write 500 if you want to UNDO move");
+            Console.WriteLine("- To Undo write '500'.");
+            Console.WriteLine("- To save current board state write '600'.");
+            Console.WriteLine("- To load mid match board state write '700'.");
+            Console.WriteLine("- To continue press any other button:");
             int num = int.Parse(Console.ReadLine());
             if(num == 500)
             {
                 Console.WriteLine("UNDO");
-                return true;
+                return undoState;
+            }
+            else if (num == 600)
+            {
+                Console.WriteLine("Board saved");
+                CannonUtils.saveBoard(currentState);
+                return currentState;
+            }
+            else if (num == 700)
+            {
+                Console.Clear();
+                Console.WriteLine("Board loaded");
+                return CannonUtils.readBoard();
             }
             else
             {
-                return false;
+                return currentState;
             }
-
-            Console.WriteLine();
         }
 
         static bool isTerminal(BoardState myBoard)
         {
-            if (myBoard.terminalFlag != CannonUtils.INode.leaf)
+            if (myBoard.terminalFlag != CannonUtils.eNode.leaf)
             {
-                string winner = myBoard.terminalFlag == CannonUtils.INode.dark_wins ? "Dark wins!!!" : "Light wins !!!";
+                string winner = myBoard.terminalFlag == CannonUtils.eNode.dark_wins ? "Dark wins!!!" : "Light wins !!!";
                 Console.WriteLine(winner);
                 return true;
             }

@@ -73,7 +73,7 @@ namespace SearchEngine
             }
         }
 
-        public void Store(BoardState s, int bestMove, int bestValue, AIUtils.ITTEntryFlag flag, int depth)
+        public void Store(BoardState s, int bestMove, int bestValue, AIUtils.eTTEntryFlag flag, int depth)
         {
             // For a given position, compute the zobrist key, and then a hash of the zobrist key, which will be your index in your transposition table.
             ulong zobristHashKey = zobristHashWithOperations(s);
@@ -133,8 +133,8 @@ namespace SearchEngine
             ulong key = 0;
             for (int boardIndex = 0; boardIndex < s.Board.Length; boardIndex++)
             {
-                CannonUtils.ISoldiers piece = s.Board[boardIndex];
-                if (piece != CannonUtils.ISoldiers.empty)
+                CannonUtils.eSoldiers piece = s.Board[boardIndex];
+                if (piece != CannonUtils.eSoldiers.empty)
                 {
                     key = key ^ Table.SoldierToBitArray(boardIndex, piece);
                 }
@@ -152,15 +152,15 @@ namespace SearchEngine
             {
                 switch (move.moveType)
                 {
-                    case CannonUtils.IMoves.step:
-                    case CannonUtils.IMoves.retreat:
-                    case CannonUtils.IMoves.slideCannon:
+                    case CannonUtils.eMoves.step:
+                    case CannonUtils.eMoves.retreat:
+                    case CannonUtils.eMoves.slideCannon:
                         key = StepRetreatSlide(key, move);
                         break;
-                    case CannonUtils.IMoves.capture:
+                    case CannonUtils.eMoves.capture:
                         key = Capture(key, move);
                         break;
-                    case CannonUtils.IMoves.shootCannon:
+                    case CannonUtils.eMoves.shootCannon:
                         key = Shoot(key, move);
                         break;
                 }

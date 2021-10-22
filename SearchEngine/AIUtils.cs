@@ -23,7 +23,7 @@ namespace SearchEngine
         /// <summary>
         /// Evaluation function type
         /// </summary>
-        public enum IEval
+        public enum eEval
         {
             colorAndRow,
             color,
@@ -33,7 +33,7 @@ namespace SearchEngine
             random
         }
 
-        public enum ITTEntryFlag
+        public enum eTTEntryFlag
         {
             exact_value,
             lower_bound,
@@ -44,7 +44,7 @@ namespace SearchEngine
         {
 
             // leaf node?
-            if (depth == 0 || s.terminalFlag != CannonUtils.INode.leaf)
+            if (depth == 0 || s.terminalFlag != CannonUtils.eNode.leaf)
             {
                 return 0;
             }

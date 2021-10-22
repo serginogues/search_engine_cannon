@@ -31,6 +31,7 @@ namespace CannonBoardConsole
 
         public BoardState addTown(bool random, BoardState root, Random rand)
         {
+            CannonUtils.printBoard(root, false);
             if (random)
             {
                 root.AddTown(rand.Next(1, 9), root.friendSoldier);
@@ -52,17 +53,41 @@ namespace CannonBoardConsole
             Console.WriteLine("MANUAL USER TURN");
             CannonUtils.printNextPlayer(s);
             CannonUtils.printBoard(s);
-            CannonUtils.printLegalMoves(s.legalMoves.Where(x => x.moveType == CannonUtils.IMoves.shootCannon).ToList());
-            Console.WriteLine();
-            Console.WriteLine("Choose a soldier (if you want to SHOOT, you can do it after chosing a soldier):");
-            Console.WriteLine("To NULL move write '100'");
-            int id = readActionId();
 
-            if (id == 100)
-            {
-                Console.WriteLine("NULL move");
-                return s.NullMove();
-            }
+
+            //string num = Console.ReadLine();
+            //string[] num_split = num.Split('-');
+            //List<string> columnChar = new List<string>() { "A", "B", "C", "D", "E", "F", "G", "H", "I", "J" };
+
+            ////// start square
+            //char[] startS = num_split[0].ToCharArray();
+            //string col_ = startS[0].ToString();
+            //int col0 = columnChar.IndexOf(col_);
+            //int row0 = int.Parse(startS[1].ToString());
+            //int boardIndex = row0 * 10 + col0;
+            //CannonUtils.ISoldiers s1 = s.Board[boardIndex];
+
+            //// target square
+            //col_ = startS[1].ToString();
+            //col0 = columnChar.IndexOf(col_);
+            //row0 = int.Parse(startS[1].ToString());
+            //int boardIndex2 = row0 * 10 + col0;
+            //CannonUtils.ISoldiers s2 = s.Board[boardIndex2];
+
+            //if(s2 == CannonUtils.ISoldiers.empty)
+            //{
+            //    if()
+            //}
+
+            //if(s2 == s.enemySoldier && AIUtils.ChebyshevDistance(s1,s2) > 3)
+
+            //int id = s.legalMoves.IndexOf(x => x.);
+
+
+            CannonUtils.printLegalMoves(s.legalMoves.Where(x => x.moveType == CannonUtils.eMoves.shootCannon).ToList());
+            Console.WriteLine();
+            Console.WriteLine("- Choose a soldier (if you want to SHOOT, you can do it after chosing a soldier):");
+            int id = readActionId();
 
             int count = 0;
             int cell = 0;
@@ -71,11 +96,11 @@ namespace CannonBoardConsole
                 for (int column = 0; column < 10; column++)
                 {
                     int boardIndex = row * 10 + column;
-                    CannonUtils.ISoldiers piece = s.Board[boardIndex];
+                    CannonUtils.eSoldiers piece = s.Board[boardIndex];
                     if (CannonUtils.IsOdd(s.turnCounter))
                     {
                         // Light soldiers turn (p2)
-                        if (piece == CannonUtils.ISoldiers.light_soldier)
+                        if (piece == CannonUtils.eSoldiers.light_soldier)
                         {
                             if (id == count)
                             {
@@ -87,7 +112,7 @@ namespace CannonBoardConsole
                     }
                     else
                     {
-                        if (piece == CannonUtils.ISoldiers.dark_soldier)
+                        if (piece == CannonUtils.eSoldiers.dark_soldier)
                         {
                             if (id == count)
                             {
@@ -99,7 +124,7 @@ namespace CannonBoardConsole
                     }
                 }
             }
-            List<Move> moves = s.legalMoves.Where(x => x.startIndex == cell || x.moveType == CannonUtils.IMoves.shootCannon).ToList();
+            List<Move> moves = s.legalMoves.Where(x => x.startIndex == cell || x.moveType == CannonUtils.eMoves.shootCannon).ToList();
             CannonUtils.printLegalMoves(moves);
 
             Console.WriteLine("Choose a move");

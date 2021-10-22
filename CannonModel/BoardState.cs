@@ -30,7 +30,7 @@ namespace CannonModel
     {
         #region Properties
         public int turnCounter { get; set; }
-        public CannonUtils.ISoldiers[] Board { get; set; }
+        public CannonUtils.eSoldiers[] Board { get; set; }
 
         /// <summary>
         /// List of move offsets from current node in clockwise order starting from left
@@ -66,7 +66,7 @@ namespace CannonModel
         /// <summary>
         /// if node is terminal node, then return its terminalNode value
         /// </summary>
-        public CannonUtils.INode terminalFlag { get; set; }
+        public CannonUtils.eNode terminalFlag { get; set; }
 
         public BoardCounter boardCounter { get; set; }
 
@@ -87,7 +87,7 @@ namespace CannonModel
             initGrid();
             initNumSquaresToEdge();
             generateLegalMoves();
-            terminalFlag = CannonUtils.INode.leaf;
+            terminalFlag = CannonUtils.eNode.leaf;
         }
 
         /// <summary>
@@ -96,7 +96,7 @@ namespace CannonModel
         private void initGrid()
         {
             int _size = CannonUtils.Size;
-            Board = new CannonUtils.ISoldiers[_size*_size];
+            Board = new CannonUtils.eSoldiers[_size*_size];
             for (int row = 0; row < _size; row++)
             {
                 for (int column = 0; column < _size; column++)
@@ -104,11 +104,11 @@ namespace CannonModel
                     int boardIndex = row * 10 + column;
                     if (CannonUtils.rootDark.Contains(boardIndex))
                     {
-                        Board[boardIndex] = CannonUtils.ISoldiers.dark_soldier;
+                        Board[boardIndex] = CannonUtils.eSoldiers.dark_soldier;
                     }
                     else if (CannonUtils.rootLight.Contains(boardIndex))
                     {
-                        Board[boardIndex] = CannonUtils.ISoldiers.light_soldier;
+                        Board[boardIndex] = CannonUtils.eSoldiers.light_soldier;
                     }
                 }
             }
@@ -156,7 +156,7 @@ namespace CannonModel
 
             for (int square = 0; square < 100; square++)
             {
-                CannonUtils.ISoldiers piece = Board[square];
+                CannonUtils.eSoldiers piece = Board[square];
                 if(piece == friendSoldier)
                 {
                     generateStepRetreatCaptureSlide(square, piece);
@@ -166,8 +166,8 @@ namespace CannonModel
                     generateShoots(square, piece);
                 }
 
-                if(piece == CannonUtils.ISoldiers.dark_soldier) { boardCounter.darkPieceList.Add(square); }
-                else if (piece == CannonUtils.ISoldiers.light_soldier) { boardCounter.lightPieceList.Add(square); }
+                if(piece == CannonUtils.eSoldiers.dark_soldier) { boardCounter.darkPieceList.Add(square); }
+                else if (piece == CannonUtils.eSoldiers.light_soldier) { boardCounter.lightPieceList.Add(square); }
             }
 
             // order moves by enum score: shoot > capture > step > retreat ...
@@ -175,7 +175,7 @@ namespace CannonModel
 
             if (legalMoves.Count == 0)
             {
-                terminalFlag = friendSoldier == CannonUtils.ISoldiers.dark_soldier ? CannonUtils.INode.light_wins : CannonUtils.INode.dark_wins;
+                terminalFlag = friendSoldier == CannonUtils.eSoldiers.dark_soldier ? CannonUtils.eNode.light_wins : CannonUtils.eNode.dark_wins;
             }
         }
 
@@ -183,56 +183,60 @@ namespace CannonModel
         /// A cannon may make a capture without sliding, i.e. to "SHOOT" an enemy piece 
         /// (either a soldier or the Town) standing on the same line as the shooting cannon 
         /// if there is one or two empty points between the cannon's front soldier and the enemy piece.
+        /// 
+        /// Evaluated from the point of view of the enemy cell.
         /// </summary>
-        /// <param name="targetSquare"></param>
-        /// <param name="targetPiece"></param>
-        private void generateShoots(int targetSquare, CannonUtils.ISoldiers targetPiece)
+        private void generateShoots(int startSquare, CannonUtils.eSoldiers startPiece)
         {
             for (int directionIndex = 0; directionIndex < 8; directionIndex++)
             {
-                bool isShort = true;
-                for (int n = 0; n < numSquaresToEdge[targetSquare][directionIndex]; n++)
+                int friendCount = 0;
+                for (int n = 0; n < numSquaresToEdge[startSquare][directionIndex]; n++)
                 {
-                    int startSquare = targetSquare + moveOffsets[directionIndex] * (n + 1);
-                    CannonUtils.ISoldiers piece = Board[startSquare];
-                    if (n == 0 && piece != CannonUtils.ISoldiers.empty) { break; }
-                    else if (n == 1)
+                    // Determine the target square
+                    int targetSquare = startSquare + moveOffsets[directionIndex] * (n + 1);
+                    // Determine the target type
+                    CannonUtils.eSoldiers targetPiece = Board[targetSquare];
+
+                    // no squares further than 3 steps
+                    bool isFurther = n > 4;
+
+                    // if there is a soldier at distance 1, break because there is no shoot possible
+                    bool soldierNeighbour = n == 0 && targetPiece != CannonUtils.eSoldiers.empty;
+
+                    // if there is any empty square at a distance of 3 or 4, break because there is no cannon possible
+                    bool emptySquare = (n == 2 || n == 3) && targetPiece == CannonUtils.eSoldiers.empty;
+
+                    if (isFurther || soldierNeighbour || emptySquare) break;
+
+                    if (targetPiece == friendSoldier) friendCount++;
+
+                    if(friendCount == 3)
                     {
-                        if(piece == friendSoldier)
-                        {
-                            isShort = true;
-                        }
-                        else if (piece == CannonUtils.ISoldiers.empty)
-                        {
-                            isShort = false;
-                        }
-                        else
-                        {
-                            break;
-                        }
-                    }
-                    else if ((n == 2 || n == 3) && piece != friendSoldier) { break; }
-                    else if (n == 4)
-                    {
-                        if (isShort)
-                        {
-                            legalMoves.Add(new Move(targetSquare, targetSquare, CannonUtils.IMoves.shootCannon, targetPiece, targetPiece));
-                            boardCounter.moveTypeCounter[(int)CannonUtils.IMoves.shootCannon]++;
-                            break;
-                        }
-                        else
-                        {
-                            if(piece != friendSoldier) { break; }
-                        }
-                    }
-                    else if(!isShort && n == 5)
-                    {
-                        legalMoves.Add(new Move(targetSquare, targetSquare, CannonUtils.IMoves.shootCannon, targetPiece, targetPiece));
-                        boardCounter.moveTypeCounter[(int)CannonUtils.IMoves.shootCannon]++;
+                        // cannon shoot
+                        legalMoves.Add(new Move(startSquare, startSquare, CannonUtils.eMoves.shootCannon, startPiece, startPiece));
+                        boardCounter.moveTypeCounter[(int)CannonUtils.eMoves.shootCannon]++;
                         break;
                     }
                 }
             }
+        }
+
+        private bool isEnemyAround(int startSquare)
+        {
+            // check all directions for enemy neighbours
+            for (int directionIndex = 0; directionIndex < 8; directionIndex++)
+            {
+                if(numSquaresToEdge[startSquare][directionIndex] > 0)
+                {
+                    // Determine the target square
+                    int targetSquare = startSquare + moveOffsets[directionIndex];
+
+                    // Check if enemy
+                    if (Board[targetSquare] == enemySoldier) { return true; }
+                }
+            }
+            return false;
         }
 
         /// <summary>
@@ -242,106 +246,134 @@ namespace CannonModel
         /// - A soldier can RETREAT two points backwards or diagonally backwards 
         ///   if it is adjacent to an enemy soldier and if the target and intermediate spots are empty.
         /// </summary>
-        private void generateStepRetreatCaptureSlide(int startSquare, CannonUtils.ISoldiers startPiece)
+        private void generateStepRetreatCaptureSlide(int startSquare, CannonUtils.eSoldiers startPiece)
         {
-            bool isEnemyAround = false;
+            bool enemyAround = isEnemyAround(startSquare);
             for (int directionIndex = 0; directionIndex < 8; directionIndex++)
             {
-                // soldier_count = 2 means that there is a cannon where 
-                int soldier_count = 0;
+                int friendSoldiersCount = 0;
+
                 for (int n = 0; n < numSquaresToEdge[startSquare][directionIndex]; n++)
                 {
-                    // no movements at distance bigger than 3
-                    if(n == 4) { break; }
+                    // There is no movements at distance bigger than 3
+                    if(n > 2) { break; }
 
-                    // [n] = distance to [targetSquare] at direction [directionIndex]
+                    // Determine the target square
                     int targetSquare = startSquare + moveOffsets[directionIndex] * (n + 1);
-                    CannonUtils.ISoldiers targetPiece = Board[targetSquare];
+                    // Determine the target type
+                    CannonUtils.eSoldiers targetPiece = Board[targetSquare];
 
-                    if (n == 2 && soldier_count == 2 && targetPiece == CannonUtils.ISoldiers.empty)
+                    // [friendSoldiersCount] = 2 means that there is a cannon in direction [directionIndex] 
+                    if (n < 2 && targetPiece == friendSoldier) { friendSoldiersCount++; }
+                    else if (n == 2 && friendSoldiersCount == 2 && targetPiece == CannonUtils.eSoldiers.empty)
                     {
-                        // SLIDE
-                        legalMoves.Add(new Move(startSquare, targetSquare, CannonUtils.IMoves.slideCannon, startPiece, targetPiece));
-                        boardCounter.moveTypeCounter[(int)CannonUtils.IMoves.slideCannon]++;
+                        // there is three soldiers in a row and an empty spot where to slide
+                        legalMoves.Add(new Move(startSquare, targetSquare, CannonUtils.eMoves.slideCannon, startPiece, targetPiece));
+                        boardCounter.moveTypeCounter[(int)CannonUtils.eMoves.slideCannon]++;
                         break;
                     }
-                    else if(targetPiece == friendSoldier)
+
+                    // Check first neightbour squares
+                    if (n == 0)
                     {
-                        soldier_count++;
-                    }
-                    else if (n == 0)
-                    {
-                        // STEP CAPTURE
-                        // Left or right capture. Same for both colors
-                        if ((directionIndex == 0 || directionIndex == 4) && (targetPiece == enemyTown || targetPiece == enemySoldier))
+                        // Left and right direction squares check
+                        if(directionIndex == 0 || directionIndex == 4)
                         {
-                            // if there is an enemy at the left or right of my piece at distance 1: capture move
-                            legalMoves.Add(new Move(startSquare, targetSquare, CannonUtils.IMoves.capture, startPiece, targetPiece));
-                            boardCounter.moveTypeCounter[(int)CannonUtils.IMoves.capture]++;
-                            isEnemyAround = true;
-                            break;
+                            if (targetPiece == CannonUtils.eSoldiers.empty)
+                            {
+                                // if target is empty, we won't slide, step, capture, shoot or retreat
+                                // then simply stop searching this direction
+                                break;
+                            }
+                            else if(targetPiece == enemySoldier || targetPiece == enemyTown)
+                            {
+                                // if target is enemy we can capture it
+                                legalMoves.Add(new Move(startSquare, targetSquare, CannonUtils.eMoves.capture, startPiece, targetPiece));
+                                boardCounter.moveTypeCounter[(int)CannonUtils.eMoves.capture]++;
+
+                                // there is no point in keep searching in this direction 
+                                break;
+                            }
                         }
-                        else if(startPiece == CannonUtils.ISoldiers.dark_soldier)
+                        else if (startPiece == CannonUtils.eSoldiers.dark_soldier)
                         {
-                            // dark can step or capture at distance 1 up, d_left_up or d_right_up
+                            // dark squares
+
                             if (directionIndex == 1 || directionIndex == 2 || directionIndex == 3)
                             {
-                                // if enemy: capture
-                                // if empty: step
-                                if(targetPiece == enemySoldier) 
-                                { 
-                                    legalMoves.Add(new Move(startSquare, targetSquare, CannonUtils.IMoves.capture, startPiece, targetPiece));
-                                    boardCounter.moveTypeCounter[(int)CannonUtils.IMoves.capture]++;
-                                    isEnemyAround = true;
+                                // diagonal and orthogonal forward
+
+                                if (targetPiece == enemyTown || targetPiece == enemySoldier)
+                                {
+                                    // if it is a enemy we can capture it and nothing else
+                                    legalMoves.Add(new Move(startSquare, targetSquare, CannonUtils.eMoves.capture, startPiece, targetPiece));
+                                    boardCounter.moveTypeCounter[(int)CannonUtils.eMoves.capture]++;
+                                    break;
                                 }
-                                else if (targetPiece == CannonUtils.ISoldiers.empty) 
-                                { 
-                                    legalMoves.Add(new Move(startSquare, targetSquare, CannonUtils.IMoves.step, startPiece, targetPiece));
-                                    boardCounter.moveTypeCounter[(int)CannonUtils.IMoves.step]++;
+                                else if(targetPiece == CannonUtils.eSoldiers.empty)
+                                {
+                                    // if its empty we can step and nothing else
+                                    legalMoves.Add(new Move(startSquare, targetSquare, CannonUtils.eMoves.step, startPiece, targetPiece));
+                                    boardCounter.moveTypeCounter[(int)CannonUtils.eMoves.step]++;
+                                    break;
                                 }
-                                break;
+                            }
+                            else if (directionIndex == 5 || directionIndex == 6 || directionIndex == 7)
+                            {
+                                // diagonal or orthogonal backward
+                                if (targetPiece == enemyTown || targetPiece == enemySoldier)
+                                {
+                                    // if it is a enemy or empty we can do nothing
+                                    break;
+                                }
                             }
                         }
                         else
                         {
-                            // light can step or capture at distance 1 down, d_left_down or d_right_down
+                            // light squares
                             if (directionIndex == 5 || directionIndex == 6 || directionIndex == 7)
                             {
-                                // if enemy: capture
-                                // if empty: step
-                                if (targetPiece == enemySoldier) 
-                                { 
-                                    legalMoves.Add(new Move(startSquare, targetSquare, CannonUtils.IMoves.capture, startPiece, targetPiece));
-                                    boardCounter.moveTypeCounter[(int)CannonUtils.IMoves.capture]++;
-                                    isEnemyAround = true;
+                                // diagonal and orthogonal forward
+
+                                if (targetPiece == enemyTown || targetPiece == enemySoldier)
+                                {
+                                    // if it is a enemy we can capture it and nothing else
+                                    legalMoves.Add(new Move(startSquare, targetSquare, CannonUtils.eMoves.capture, startPiece, targetPiece));
+                                    boardCounter.moveTypeCounter[(int)CannonUtils.eMoves.capture]++;
+                                    break;
                                 }
-                                else if (targetPiece == CannonUtils.ISoldiers.empty) 
-                                { 
-                                    legalMoves.Add(new Move(startSquare, targetSquare, CannonUtils.IMoves.step, startPiece, targetPiece));
-                                    boardCounter.moveTypeCounter[(int)CannonUtils.IMoves.step]++;
+                                else if (targetPiece == CannonUtils.eSoldiers.empty)
+                                {
+                                    // if its empty we can step and nothing else
+                                    legalMoves.Add(new Move(startSquare, targetSquare, CannonUtils.eMoves.step, startPiece, targetPiece));
+                                    boardCounter.moveTypeCounter[(int)CannonUtils.eMoves.step]++;
+                                    break;
                                 }
-                                break;
                             }
+                            else if (directionIndex == 1 || directionIndex == 2 || directionIndex == 3)
+                            {
+                                // diagonal or orthogonal backward
+                                if (targetPiece == enemyTown || targetPiece == enemySoldier)
+                                {
+                                    // if it is a enemy or empty we can do nothing
+                                    break;
+                                }
+                            }
+
                         }
                     }
-                    else if(n == 1 && isEnemyAround)
+                    else if (n == 1 && enemyAround)
                     {
-                        int middleSquare = startSquare + moveOffsets[directionIndex] * n;
-                        bool isEmpty = Board[middleSquare] == CannonUtils.ISoldiers.empty && targetPiece == CannonUtils.ISoldiers.empty;
+                        // retreat moves
 
-                        // RETREAT
-                        if ((directionIndex == 5 || directionIndex == 6 || directionIndex == 7) && startPiece == CannonUtils.ISoldiers.dark_soldier && isEmpty)
+                        int middleSquare = startSquare + moveOffsets[directionIndex];
+                        bool isEmpty = Board[middleSquare] == CannonUtils.eSoldiers.empty && targetPiece == CannonUtils.eSoldiers.empty;
+
+                        if (isEmpty && (((directionIndex == 5 || directionIndex == 6 || directionIndex == 7) && startPiece == CannonUtils.eSoldiers.dark_soldier) ||
+                                ((directionIndex == 1 || directionIndex == 2 || directionIndex == 3) && startPiece == CannonUtils.eSoldiers.light_soldier)))
                         {
-                            // dark retreat at distance 2 down, d_left_down or d_right_down
-                            legalMoves.Add(new Move(startSquare, targetSquare, CannonUtils.IMoves.retreat, startPiece, targetPiece));
-                            boardCounter.moveTypeCounter[(int)CannonUtils.IMoves.retreat]++;
-                            break;
-                        }
-                        else if ((directionIndex == 1 || directionIndex == 2 || directionIndex == 3) && startPiece == CannonUtils.ISoldiers.light_soldier && isEmpty)
-                        {
-                            // light retreat at distance 2 up, d_left_up or d_right_up
-                            legalMoves.Add(new Move(startSquare, targetSquare, CannonUtils.IMoves.retreat, startPiece, targetPiece));
-                            boardCounter.moveTypeCounter[(int)CannonUtils.IMoves.retreat]++;
+                            legalMoves.Add(new Move(startSquare, targetSquare, CannonUtils.eMoves.retreat, startPiece, targetPiece));
+                            boardCounter.moveTypeCounter[(int)CannonUtils.eMoves.retreat]++;
                             break;
                         }
                     }
@@ -351,18 +383,18 @@ namespace CannonModel
 
         /// <param name="_column"> Column to be added the town </param>
         /// <param name="_color"> True == Dark,  False == Light </param>
-        public void AddTown(int _column, CannonUtils.ISoldiers _color)
+        public void AddTown(int _column, CannonUtils.eSoldiers _color)
         {
-            if (_color == CannonUtils.ISoldiers.dark_soldier)
+            if (_color == CannonUtils.eSoldiers.dark_soldier)
             {
                 int boardIndex = _column;
-                Board[boardIndex] = CannonUtils.ISoldiers.dark_town;
+                Board[boardIndex] = CannonUtils.eSoldiers.dark_town;
                 darkTown = boardIndex;
             }
-            else if (_color == CannonUtils.ISoldiers.light_soldier)
+            else if (_color == CannonUtils.eSoldiers.light_soldier)
             {
                 int boardIndex = 90 + _column;
-                Board[boardIndex] = CannonUtils.ISoldiers.light_town;
+                Board[boardIndex] = CannonUtils.eSoldiers.light_town;
                 lightTown = boardIndex;
             }
             turnCounter++;
@@ -380,23 +412,23 @@ namespace CannonModel
 
             // move soldiers in [child] based on [move_id]
             Move move = child.legalMoves[moveIndex];
-            CannonUtils.ISoldiers oldPiece = Board[move.startIndex];
+            CannonUtils.eSoldiers oldPiece = Board[move.startIndex];
             switch (move.moveType)
             {
-                case CannonUtils.IMoves.shootCannon:
+                case CannonUtils.eMoves.shootCannon:
                     child.IsTerminalMove(move);
-                    child.Board[move.targetIndex] = CannonUtils.ISoldiers.empty;
+                    child.Board[move.targetIndex] = CannonUtils.eSoldiers.empty;
                     break;
-                case CannonUtils.IMoves.step:
-                case CannonUtils.IMoves.retreat:
-                case CannonUtils.IMoves.slideCannon:
+                case CannonUtils.eMoves.step:
+                case CannonUtils.eMoves.retreat:
+                case CannonUtils.eMoves.slideCannon:
                     child.Board[move.targetIndex] = oldPiece;
-                    child.Board[move.startIndex] = CannonUtils.ISoldiers.empty;
+                    child.Board[move.startIndex] = CannonUtils.eSoldiers.empty;
                     break;
-                case CannonUtils.IMoves.capture:
+                case CannonUtils.eMoves.capture:
                     child.IsTerminalMove(move);
                     child.Board[move.targetIndex] = oldPiece;
-                    child.Board[move.startIndex] = CannonUtils.ISoldiers.empty;
+                    child.Board[move.startIndex] = CannonUtils.eSoldiers.empty;
                     break;
             }
 
@@ -410,23 +442,11 @@ namespace CannonModel
             return child;
         }
 
-        public BoardState NullMove()
-        {
-            // create [child] that is exactly the same as [this]
-            BoardState child = DeepCopy();
-            child.turnCounter++;
-
-            // update LegalMoves
-            child.generateLegalMoves();
-
-            return child;
-        }
-
         private void IsTerminalMove(Move move)
         {
-            CannonUtils.ISoldiers piece = Board[move.targetIndex];
-            if (piece == CannonUtils.ISoldiers.dark_town) { terminalFlag = CannonUtils.INode.light_wins; }
-            else if (piece == CannonUtils.ISoldiers.light_town) { terminalFlag = CannonUtils.INode.dark_wins; }
+            CannonUtils.eSoldiers piece = Board[move.targetIndex];
+            if (piece == CannonUtils.eSoldiers.dark_town) { terminalFlag = CannonUtils.eNode.light_wins; }
+            else if (piece == CannonUtils.eSoldiers.light_town) { terminalFlag = CannonUtils.eNode.dark_wins; }
         }
 
         /// <summary>
@@ -439,20 +459,20 @@ namespace CannonModel
             new_position.legalMoves = new List<Move>(legalMoves);
             new_position.plyHistory = new List<Move>(plyHistory);
             new_position.turnCounter = turnCounter;
-            new_position.Board = new CannonUtils.ISoldiers[CannonUtils.Size* CannonUtils.Size];
+            new_position.Board = new CannonUtils.eSoldiers[CannonUtils.Size* CannonUtils.Size];
             new_position.Board = Board.Select(a => a).ToArray();
             Array.Copy(new_position.Board, Board, Board.Length);
-            new_position.terminalFlag = CannonUtils.INode.leaf;
+            new_position.terminalFlag = CannonUtils.eNode.leaf;
             new_position.boardCounter = new BoardCounter();
             return new_position;
         }
         #endregion
 
         #region Enemy Friend Utils
-        public CannonUtils.ISoldiers friendSoldier => CannonUtils.IsOdd(turnCounter) ? CannonUtils.ISoldiers.light_soldier : CannonUtils.ISoldiers.dark_soldier;
-        public CannonUtils.ISoldiers enemySoldier => !CannonUtils.IsOdd(turnCounter) ? CannonUtils.ISoldiers.light_soldier : CannonUtils.ISoldiers.dark_soldier;
-        public CannonUtils.ISoldiers TownFriend => CannonUtils.IsOdd(turnCounter) ? CannonUtils.ISoldiers.light_town : CannonUtils.ISoldiers.dark_town;
-        public CannonUtils.ISoldiers enemyTown => !CannonUtils.IsOdd(turnCounter) ? CannonUtils.ISoldiers.light_town : CannonUtils.ISoldiers.dark_town;
+        public CannonUtils.eSoldiers friendSoldier => CannonUtils.IsOdd(turnCounter) ? CannonUtils.eSoldiers.light_soldier : CannonUtils.eSoldiers.dark_soldier;
+        public CannonUtils.eSoldiers enemySoldier => !CannonUtils.IsOdd(turnCounter) ? CannonUtils.eSoldiers.light_soldier : CannonUtils.eSoldiers.dark_soldier;
+        public CannonUtils.eSoldiers TownFriend => CannonUtils.IsOdd(turnCounter) ? CannonUtils.eSoldiers.light_town : CannonUtils.eSoldiers.dark_town;
+        public CannonUtils.eSoldiers enemyTown => !CannonUtils.IsOdd(turnCounter) ? CannonUtils.eSoldiers.light_town : CannonUtils.eSoldiers.dark_town;
         #endregion
     }
 
@@ -466,7 +486,7 @@ namespace CannonModel
         {
             darkPieceList = new List<int>();
             lightPieceList = new List<int>();
-            moveTypeCounter = new int[Enum.GetNames(typeof(CannonUtils.IMoves)).Length];
+            moveTypeCounter = new int[Enum.GetNames(typeof(CannonUtils.eMoves)).Length];
         }
     } 
 }

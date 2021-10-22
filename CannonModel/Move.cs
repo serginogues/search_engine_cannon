@@ -10,18 +10,18 @@ namespace CannonModel
         /// Soldier that executes move
         /// </summary>
         public int startIndex { get; set; }
-        public CannonUtils.ISoldiers startPiece { get; set; }
+        public CannonUtils.eSoldiers startPiece { get; set; }
 
         /// <summary>
         /// Cell to update 
         /// </summary>
         public int targetIndex { get; set; }
 
-        public CannonUtils.ISoldiers targetPiece { get; set; }
+        public CannonUtils.eSoldiers targetPiece { get; set; }
 
-        public CannonUtils.IMoves moveType { get; set; }
+        public CannonUtils.eMoves moveType { get; set; }
 
-        public Move(int start_index, int target_index, CannonUtils.IMoves type, CannonUtils.ISoldiers start_piece, CannonUtils.ISoldiers target_piece)
+        public Move(int start_index, int target_index, CannonUtils.eMoves type, CannonUtils.eSoldiers start_piece, CannonUtils.eSoldiers target_piece)
         {
             startIndex = start_index;
             targetIndex = target_index;

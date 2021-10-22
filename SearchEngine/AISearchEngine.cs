@@ -21,7 +21,7 @@ namespace SearchEngine
         /// </summary>
         private Move[,] killerMoves { get; set; }
         private readonly int myColor;
-        private readonly AIUtils.IEval evaluationF;
+        private readonly AIUtils.eEval evaluationF;
         private readonly bool isTT = true;
         private readonly bool isMultiCut = false;
         private readonly bool isKillerHeuristics = true;
@@ -39,7 +39,7 @@ namespace SearchEngine
         private int tt_prunings { get; set; }
         #endregion
 
-        public AISearchEngine(AIUtils.IEval function, int color)
+        public AISearchEngine(AIUtils.eEval function, int color)
         {
             evaluationF = function;
             myColor = color;
@@ -116,14 +116,14 @@ namespace SearchEngine
             if (n.Depth >= depth)
             {
                 // [n] is deeper than current depth or the same (means it is more interesting than current depth)
-                if (n.Flag == AIUtils.ITTEntryFlag.exact_value) 
+                if (n.Flag == AIUtils.eTTEntryFlag.exact_value) 
                 {
                     tt_prunings++;
                     if (ply == 0) optimalMove = n.BestMove;
                     return n.Score; 
                 }
-                else if (n.Flag == AIUtils.ITTEntryFlag.lower_bound) { alpha = n.Score > alpha ? n.Score : alpha; }
-                else if (n.Flag == AIUtils.ITTEntryFlag.upper_bound) { beta = n.Score < beta ? n.Score : beta; }
+                else if (n.Flag == AIUtils.eTTEntryFlag.lower_bound) { alpha = n.Score > alpha ? n.Score : alpha; }
+                else if (n.Flag == AIUtils.eTTEntryFlag.upper_bound) { beta = n.Score < beta ? n.Score : beta; }
                 if (alpha >= beta)
                 {
                     tt_prunings++;
@@ -134,7 +134,7 @@ namespace SearchEngine
             #endregion
 
             // Terminal or Leaf node
-            if (depth == 0 || s.terminalFlag != CannonUtils.INode.leaf) { return Evaluation.Evaluate(s, evaluationF) * color; }
+            if (depth == 0 || s.terminalFlag != CannonUtils.eNode.leaf) { return Evaluation.Evaluate(s, evaluationF) * color; }
 
             // initialize alpha-beta parameters
             int bestValue = -100000000;
@@ -209,14 +209,14 @@ namespace SearchEngine
 
             #region TT (cont.)
             // Traditional transposition table storing of bounds
-            AIUtils.ITTEntryFlag flag;
+            AIUtils.eTTEntryFlag flag;
 
             // Fail-low result implies an upper bound
-            if (bestValue <= olda) { flag = AIUtils.ITTEntryFlag.upper_bound; }
+            if (bestValue <= olda) { flag = AIUtils.eTTEntryFlag.upper_bound; }
 
             // Fail-high result implies a lower bound
-            else if (bestValue >= beta) { flag = AIUtils.ITTEntryFlag.lower_bound; }
-            else { flag = AIUtils.ITTEntryFlag.exact_value; }
+            else if (bestValue >= beta) { flag = AIUtils.eTTEntryFlag.lower_bound; }
+            else { flag = AIUtils.eTTEntryFlag.exact_value; }
 
             // store information in the TT
             if(isTT) myTT.Store(s, bestMove, bestValue, flag, depth);
@@ -231,7 +231,7 @@ namespace SearchEngine
             nodesEvaluated++;
 
             // Terminal or Leaf node
-            if (depth == 0 || s.terminalFlag != CannonUtils.INode.leaf) { return Evaluation.Evaluate(s, evaluationF) * color; }
+            if (depth == 0 || s.terminalFlag != CannonUtils.eNode.leaf) { return Evaluation.Evaluate(s, evaluationF) * color; }
 
             // initialize alpha-beta parameters
             int bestValue = -100000000;

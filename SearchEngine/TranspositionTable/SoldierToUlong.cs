@@ -51,7 +51,7 @@ namespace SearchEngine
             }
         }
 
-        public ulong SoldierToBitArray(int boardIndex, CannonUtils.ISoldiers type)
+        public ulong SoldierToBitArray(int boardIndex, CannonUtils.eSoldiers type)
         {
             int dim1 = (int)type - 1;
             return table[boardIndex, dim1];
