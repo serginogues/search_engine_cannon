@@ -8,6 +8,14 @@ namespace CannonModel
     public static class CannonUtils
     {
         private static readonly string savePath = @"D:/UM/ISG/search_engine_cannon/board.txt";
+        private static readonly string midPosition = @"D:/UM/ISG/search_engine_cannon/board.txt";
+
+        public static int getMoveIndex(BoardState s, Move m) 
+        {
+            return s.legalMoves.FindIndex(x => x.startIndex == m.startIndex &&
+                                        x.targetIndex == m.targetIndex &&
+                                        x.moveType == m.moveType);
+        }
 
         public static bool IsOdd(int value)
         {
@@ -28,7 +36,7 @@ namespace CannonModel
             BoardState s = new BoardState();
             s.root_init();
             int square = 0;
-            foreach (string line in System.IO.File.ReadLines(savePath))
+            foreach (string line in System.IO.File.ReadLines(midPosition))
             {
                 s.Board[square] = (eSoldiers)Int32.Parse(line);
                 square ++;

@@ -38,6 +38,7 @@ namespace CannonBoardConsole
             Random rand = new Random();
             darkP.addTown(darkIsAi, root, rand);
             lightP.addTown(lightIsAi, root, rand);
+            //root = CannonUtils.readBoard();
 
             // Play game
             for (int turn = 0; turn < 1000; turn++)
@@ -52,14 +53,14 @@ namespace CannonBoardConsole
                         // dark turn
                         Console.WriteLine("================================= Turn for Dark");
                         root = darkP.Move(darkIsAi, root);
-                        root = options(stateCopy, root);
+                        if(!darkIsAi) root = options(stateCopy, root);
                     }
                     else
                     {
                         // light turn
                         Console.WriteLine("================================= Turn for Light");
                         root = lightP.Move(lightIsAi, root);
-                        root = options(stateCopy, root);
+                        if(!lightIsAi) root = options(stateCopy, root);
 
                     }
                     if (isTerminal(root)) { break; }

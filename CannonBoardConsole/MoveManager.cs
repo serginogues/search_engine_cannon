@@ -54,36 +54,6 @@ namespace CannonBoardConsole
             CannonUtils.printNextPlayer(s);
             CannonUtils.printBoard(s);
 
-
-            //string num = Console.ReadLine();
-            //string[] num_split = num.Split('-');
-            //List<string> columnChar = new List<string>() { "A", "B", "C", "D", "E", "F", "G", "H", "I", "J" };
-
-            ////// start square
-            //char[] startS = num_split[0].ToCharArray();
-            //string col_ = startS[0].ToString();
-            //int col0 = columnChar.IndexOf(col_);
-            //int row0 = int.Parse(startS[1].ToString());
-            //int boardIndex = row0 * 10 + col0;
-            //CannonUtils.ISoldiers s1 = s.Board[boardIndex];
-
-            //// target square
-            //col_ = startS[1].ToString();
-            //col0 = columnChar.IndexOf(col_);
-            //row0 = int.Parse(startS[1].ToString());
-            //int boardIndex2 = row0 * 10 + col0;
-            //CannonUtils.ISoldiers s2 = s.Board[boardIndex2];
-
-            //if(s2 == CannonUtils.ISoldiers.empty)
-            //{
-            //    if()
-            //}
-
-            //if(s2 == s.enemySoldier && AIUtils.ChebyshevDistance(s1,s2) > 3)
-
-            //int id = s.legalMoves.IndexOf(x => x.);
-
-
             CannonUtils.printLegalMoves(s.legalMoves.Where(x => x.moveType == CannonUtils.eMoves.shootCannon).ToList());
             Console.WriteLine();
             Console.WriteLine("- Choose a soldier (if you want to SHOOT, you can do it after chosing a soldier):");

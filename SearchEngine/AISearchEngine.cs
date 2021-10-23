@@ -14,28 +14,36 @@ namespace SearchEngine
     /// </summary>
     public class AISearchEngine
     {
-        private TranspositionTable myTT;
+        #region properties
+        private TranspositionTable transpositionTable;
         /// <summary>
         /// killerMoves[ply][slot]
         /// https://stackoverflow.com/questions/17692867/implementing-killer-heuristic-in-alpha-beta-search-in-chess
         /// </summary>
         private Move[,] killerMoves { get; set; }
+        private int[,] darkHistory { get; set; }
+        private int[,] lightHistory { get; set; }
+        private int optimalMove { get; set; }
+        #endregion
+
+        #region Settings
         private readonly int myColor;
         private readonly AIUtils.eEval evaluationF;
         private readonly bool isTT = true;
         private readonly bool isMultiCut = false;
         private readonly bool isKillerHeuristics = true;
-        private readonly bool isHistoryHeuristics = false;
+        private readonly bool isHistoryHeuristics = true;
+        private readonly bool isAspirationalSearch = true;
+        private readonly bool isNullMove = false;
         private const int searchDepth = 30;
-        private readonly bool printEvaluatedMoves = true;
-        private int optimalMove { get; set; }
-
-        private List<EvaluatedNode> moveEvaluationList { get; set; } 
+        private readonly bool printEvaluatedMoves = false;
+        #endregion
 
         #region counters
         private int nodesEvaluated { get; set; }
         private int prunnings { get; set; }
         private int tt_prunings { get; set; }
+        private List<EvaluatedNode> moveEvaluationList { get; set; }
         #endregion
 
         public AISearchEngine(AIUtils.eEval function, int color)
@@ -46,35 +54,56 @@ namespace SearchEngine
 
         public BoardState search(BoardState root)
         {
+            // print current state of the board
             CannonUtils.printBoard(root, false);
             Console.WriteLine();
 
-            myTT = new TranspositionTable(root);
+            // initialise enhancements
+            transpositionTable = new TranspositionTable(root);
             killerMoves = new Move[100,2]; // make big enough and save best two killer moves per ply
+            darkHistory = new int[100, 100]; // all possible moves
+            lightHistory = new int[100, 100];
 
+            // initialise timer
             Stopwatch stopWatch = new Stopwatch();
             stopWatch.Start();
 
+            // initialise counters
             nodesEvaluated = 0;
             prunnings = 0;
             tt_prunings = 0;
+
+            // initialise alpha beta values
+            int alpha = -50000;
+            int beta = 50000;
 
             // Iterative-deepening
             for (int d = 1; d <= searchDepth; d++)
             {
                 moveEvaluationList = new List<EvaluatedNode>();
 
-                int bestValue = negamax(root, -1000000, 100000, d, myColor, 0, isMultiCut);
+                int bestValue = AlphaBeta(root, alpha, beta, d, myColor, 0, isMultiCut);
                 var elapsed = stopWatch.ElapsedMilliseconds;
                 Console.WriteLine("Depth = " + d +
                     ", Nodes Evaluated = " + nodesEvaluated +
-                    " after " + elapsed.ToString() + "[ms]" +
-                    ", ab prunings = " + prunnings +
-                    ", TT prunings = " + tt_prunings);
+                    " after " + elapsed.ToString() + "[ms]");
 
                 if (elapsed > 60000)
                 {
-                   break;
+                    break;
+                }
+
+                if (isAspirationalSearch)
+                {
+                    if((bestValue <= alpha) || (bestValue >=beta))
+                    {
+                        alpha = -50000;
+                        beta = 50000;
+                        continue;
+                    }
+
+                    alpha = bestValue - 50;
+                    beta = bestValue + 50;
                 }
             }
 
@@ -95,17 +124,17 @@ namespace SearchEngine
         /// Decision algorithm to find the best move given current state of the board
         /// Call: AlphaBetaWithTT(s, -inf, inf, depth)
         /// </summary>
-        private int negamax(BoardState s, int alpha, int beta, int depth, int color, int ply, bool cut)
+        private int AlphaBeta(BoardState s, int alpha, int beta, int depth, int color, int ply, bool cut)
         {
             // increment node counter
             nodesEvaluated++;
 
-            #region Transposition Table
+            #region TT lookup and pruning
             // save original alpha value for TT flag
             int olda = alpha;
 
             // TT lookup
-            Entry n = myTT.TableLookup(s);
+            Entry n = transpositionTable.TableLookup(s);
 
             // we can only use [n] when the entry depth is less deep than current [depth]
             if (n.Depth >= depth)
@@ -133,24 +162,47 @@ namespace SearchEngine
 
             // initialize alpha-beta parameters
             int bestValue = -100000000;
-            int bestMove = 0;
+            int bestMove = 0; 
+
+            #region null move pruning
+            if(isNullMove && depth >= 3 && ply > 0)
+            {
+                // reduced depth factor
+                int R = 2;
+
+                // save board position
+                BoardState copyBoard = s.DeepCopy();
+
+                // change side
+                copyBoard.turnCounter++;
+
+                // generate moves for new position
+                copyBoard.generateLegalMoves();
+
+                // search with reduced depth
+                int result = -AlphaBeta(copyBoard, -beta, -alpha, depth - 1 - R, -color, ply + 1, false);
+
+                if(result >= beta) return beta;
+            }
+
+            #endregion
 
             List<int> successor_list = sortMoves(s, n, ply);
 
-            #region multi-cut
-            if (cut)
+            #region multi-cut pruning
+            if (cut && depth >= 3)
             {
-                // before regular ab search
+                // multi-cut parameters
                 int c = 0;
                 int m = 0;
                 int C = 3;
                 int M = 10;
                 int R = 2;
+
                 while (m < M && m < successor_list.Count)
                 {
-                    int new_depth = depth - 1 - R;
-                    if (new_depth < 0) { new_depth = 0; }
-                    int result = -negamax(s.Successor(m), -beta, -alpha, new_depth, -color, ply + 1, false);
+                    // search with reduced depth
+                    int result = -AlphaBeta(s.Successor(m), -beta, -alpha, depth - 1 - R, -color, ply + 1, false);
                     if (result > bestValue)
                     {
                         bestValue = result;
@@ -169,19 +221,17 @@ namespace SearchEngine
                 }
                 successor_list.Insert(0, bestMove);
                 successor_list.RemoveAt(bestMove);
+
+                // re-initialise alpha-beta parameters after multi-cut
+                bestValue = -100000000;
+                bestMove = 0;
             }
             // start searching all children again
             #endregion
 
-            // re-initialise alpha-beta parameters after multi-cut
-            bestValue = -100000000;
-            bestMove = 0;
-
-            // Regular alpha-beta search algorithm
             foreach (int child in successor_list)
             {
-                BoardState newState = s.Successor(child);
-                int result = -negamax(newState, -beta, -alpha, depth - 1, -color, ply + 1, false);
+                int result = -AlphaBeta(s.Successor(child), -beta, -alpha, depth - 1, -color, ply + 1, false);
                 if(ply == 0) moveEvaluationList.Add(new EvaluatedNode() {depth=depth, move=s.legalMoves[child], value=result });
 
                 if (result > bestValue)
@@ -201,29 +251,68 @@ namespace SearchEngine
                 }                
             }
 
-            #region TT (cont.)
-            // Traditional transposition table storing of bounds
-            AIUtils.eTTEntryFlag flag;
+            #region HH increase bestMove weight
+            if (isHistoryHeuristics && ply > 1)
+            {
+                Move move = s.legalMoves[bestMove];
+                if(s.friendSoldier == CannonUtils.eSoldiers.dark_soldier)
+                {
+                    darkHistory[move.startIndex, move.targetIndex] += depth*depth;
+                }
+                else
+                {
+                    lightHistory[move.startIndex, move.targetIndex] += depth*depth; 
+                }
+            }
+            #endregion
 
-            // Fail-low result implies an upper bound
-            if (bestValue <= olda) { flag = AIUtils.eTTEntryFlag.upper_bound; }
+            #region TT (cont.) store position
+            if (isTT)
+            {
+                // Traditional transposition table storing of bounds
+                AIUtils.eTTEntryFlag flag;
 
-            // Fail-high result implies a lower bound
-            else if (bestValue >= beta) { flag = AIUtils.eTTEntryFlag.lower_bound; }
-            else { flag = AIUtils.eTTEntryFlag.exact_value; }
+                // Fail-low result implies an upper bound
+                if (bestValue <= olda) { flag = AIUtils.eTTEntryFlag.upper_bound; }
 
-            // store information in the TT
-            if(isTT) myTT.Store(s, bestMove, bestValue, flag, depth);
+                // Fail-high result implies a lower bound
+                else if (bestValue >= beta) { flag = AIUtils.eTTEntryFlag.lower_bound; }
+                else { flag = AIUtils.eTTEntryFlag.exact_value; }
+
+                // store information in the TT
+                transpositionTable.Store(s, bestMove, bestValue, flag, depth);
+            }
             #endregion
 
             return bestValue;
         }
 
+        /// <summary>
+        /// Move ordering scheme:
+        /// 1 - hash moves
+        /// 2 - killer moves
+        /// 3 - history heuristic
+        /// 4 - domain knowledge heuristic
+        /// </summary>
         private List<int> sortMoves(BoardState s, Entry n, int ply)
         {
             // generate list of move indices
             int n_moves = s.legalMoves.Count;
             List<int> successor_list = Enumerable.Range(0, n_moves).ToList();
+
+            // if history heuristics
+            if (isHistoryHeuristics)
+            {
+                // we need to order the list of legal moves [s.legalMoves] as HH dictates
+                List<int> moveScores = new List<int>();
+                int[,] HHTable = s.friendSoldier == CannonUtils.eSoldiers.dark_soldier ? darkHistory : lightHistory;
+                foreach (Move move in s.legalMoves)
+                {
+                    moveScores.Add(HHTable[move.startIndex, move.targetIndex]);
+                }
+
+                if (moveScores.Any(v => v != 0)) successor_list = successor_list.OrderByDescending(d => moveScores.IndexOf(d)).ToList();
+            }
             
             // if Killer Heuristics, put them at the beginning
             if (isKillerHeuristics)
@@ -233,9 +322,7 @@ namespace SearchEngine
                     if (killerMoves[ply, slot] != null)
                     {
                         Move killerMove = killerMoves[ply, 0];
-                        int killIndex = s.legalMoves.FindIndex(x => x.startIndex == killerMove.startIndex &&
-                                                                    x.targetIndex == killerMove.targetIndex &&
-                                                                    x.moveType == killerMove.moveType);
+                        int killIndex = CannonUtils.getMoveIndex(s, killerMove);
 
                         if (killIndex != -1)
                         {
