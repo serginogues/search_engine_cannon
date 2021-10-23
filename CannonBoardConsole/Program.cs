@@ -16,22 +16,14 @@ namespace CannonBoardConsole
 
         /// <summary>
         ///  color = 1 -> dark
-        ///  - your  program  has  to  finish  the  whole  game  within  10minutes own time.
-        ///  - OPPONENT (MANUAL USER): Moves of the opponent are entered manually  by  the  operator.
-        ///  - YOU (AI): Moves  by  your  program  are  communicated  to  your  opponent.
-        /// GAME LOGIC:
-        /// - Implement Undo move
-        /// ITERATIVE DEEPENING: 
-        /// - Add null move (iterative deepening) and multi cut
-        /// https://www.codeproject.com/Articles/37024/Simple-AI-for-the-Game-of-Breakthrough
         /// </summary>
         static void Main() 
         {
             // ai_dark vs ai_light = 0
             // ai_dark vs manual_light = 1
             // manual_dark vs ai_light = 2 
-            bool darkIsAi = false;
-            bool lightIsAi = false;
+            bool darkIsAi = true;
+            bool lightIsAi = true;
 
             Stopwatch stopWatch = new Stopwatch();
             stopWatch.Start();

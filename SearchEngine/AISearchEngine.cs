@@ -27,7 +27,7 @@ namespace SearchEngine
         private readonly bool isKillerHeuristics = true;
         private readonly bool isHistoryHeuristics = false;
         private const int searchDepth = 30;
-        private readonly bool printEvaluatedMoves = false;
+        private readonly bool printEvaluatedMoves = true;
         private int optimalMove { get; set; }
 
         private List<EvaluatedNode> moveEvaluationList { get; set; } 
@@ -35,7 +35,6 @@ namespace SearchEngine
         #region counters
         private int nodesEvaluated { get; set; }
         private int prunnings { get; set; }
-        private int multi_cut_prunnings { get; set; }
         private int tt_prunings { get; set; }
         #endregion
 
@@ -58,7 +57,6 @@ namespace SearchEngine
 
             nodesEvaluated = 0;
             prunnings = 0;
-            multi_cut_prunnings = 0;
             tt_prunings = 0;
 
             // Iterative-deepening
@@ -67,17 +65,14 @@ namespace SearchEngine
                 moveEvaluationList = new List<EvaluatedNode>();
 
                 int bestValue = negamax(root, -1000000, 100000, d, myColor, 0, isMultiCut);
-                //int bestValue = simple_negamax(root, -1000000, 100000, d, myColor, 0);
                 var elapsed = stopWatch.ElapsedMilliseconds;
                 Console.WriteLine("Depth = " + d +
                     ", Nodes Evaluated = " + nodesEvaluated +
                     " after " + elapsed.ToString() + "[ms]" +
                     ", ab prunings = " + prunnings +
-                    ", TT prunings = " + tt_prunings +
-                    ", multi-cut prunings = " + multi_cut_prunnings +
-                    ", TT entries = " + myTT.TT.ToList().Where(x => x != null).ToList().Count);
+                    ", TT prunings = " + tt_prunings);
 
-                if (elapsed > 2000)
+                if (elapsed > 60000)
                 {
                    break;
                 }
@@ -166,7 +161,6 @@ namespace SearchEngine
                         c++;
                         if (c >= C)
                         {
-                            multi_cut_prunnings++;
                             if (ply == 0) optimalMove = bestMove;
                             return beta;
                         }
@@ -225,47 +219,6 @@ namespace SearchEngine
             return bestValue;
         }
 
-        private int simple_negamax(BoardState s, int alpha, int beta, int depth, int color, int ply)
-        {
-            // increment node counter
-            nodesEvaluated++;
-
-            // Terminal or Leaf node
-            if (depth == 0 || s.terminalFlag != CannonUtils.eNode.leaf) { return Evaluation.Evaluate(s, evaluationF) * color; }
-
-            // initialize alpha-beta parameters
-            int bestValue = -100000000;
-            int bestMove = 0;
-
-            List<int> successor_list = sortMoves(s, new Entry(0) { Depth = -1 }, ply);
-
-            // re-initialise alpha-beta parameters after multi-cut
-            bestValue = -100000000;
-            bestMove = 0;
-
-            // Regular alpha-beta search algorithm
-            foreach (int child in successor_list)
-            {
-                int result = -simple_negamax(s.Successor(child), -beta, -alpha, depth - 1, -color, ply + 1);
-                if (ply == 0) moveEvaluationList.Add(new EvaluatedNode() { depth = depth, move = s.legalMoves[child], value = result });
-
-                if (result > bestValue)
-                {
-                    bestValue = result;
-                    bestMove = child;
-                    if (ply == 0) optimalMove = bestMove;
-                }
-                if (bestValue > alpha) { alpha = bestValue; }
-                if (bestValue >= beta)
-                {
-                    prunnings++;
-                    break;
-                }
-            }
-
-            return bestValue;
-        }
-
         private List<int> sortMoves(BoardState s, Entry n, int ply)
         {
             // generate list of move indices
@@ -281,8 +234,8 @@ namespace SearchEngine
                     {
                         Move killerMove = killerMoves[ply, 0];
                         int killIndex = s.legalMoves.FindIndex(x => x.startIndex == killerMove.startIndex &&
-                                                                            x.targetIndex == killerMove.targetIndex &&
-                                                                            x.moveType == killerMove.moveType);
+                                                                    x.targetIndex == killerMove.targetIndex &&
+                                                                    x.moveType == killerMove.moveType);
 
                         if (killIndex != -1)
                         {
