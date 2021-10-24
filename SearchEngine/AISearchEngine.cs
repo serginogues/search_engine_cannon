@@ -8,27 +8,43 @@ using System.Diagnostics;
 namespace SearchEngine
 {
     /// <summary>
-    /// Reference search speed values:
-    /// - With move ordering alpha beta: 
-    /// Depth 4 -> Nodes evaluated: 73678. In 1252 [ms]
+    /// Search Engine main class
     /// </summary>
     public class AISearchEngine
     {
         #region properties
-        private TranspositionTable transpositionTable;
         /// <summary>
-        /// killerMoves[ply][slot]
-        /// https://stackoverflow.com/questions/17692867/implementing-killer-heuristic-in-alpha-beta-search-in-chess
+        /// Hash Table
+        /// </summary>
+        private TranspositionTable transpositionTable;
+
+        /// <summary>
+        /// Killer Heuristics table
         /// </summary>
         private Move[,] killerMoves { get; set; }
+
+        /// <summary>
+        /// History Heuristics for dark pieces
+        /// </summary>
         private int[,] darkHistory { get; set; }
+
+        /// <summary>
+        /// History Heuristics for light pieces
+        /// </summary>
         private int[,] lightHistory { get; set; }
+
+        /// <summary>
+        /// Move to execute after search
+        /// </summary>
         private int optimalMove { get; set; }
         #endregion
 
         #region Settings
+        /* Adjust settings before executing program */
         private readonly int myColor;
         private readonly AIUtils.eEval evaluationF;
+
+        private readonly int searchTime = 60000;
         private readonly bool isTT = true;
         private readonly bool isMultiCut = false;
         private readonly bool isKillerHeuristics = true;
@@ -36,7 +52,7 @@ namespace SearchEngine
         private readonly bool isAspirationalSearch = true;
         private readonly bool isNullMove = false;
         private const int searchDepth = 30;
-        private readonly bool printEvaluatedMoves = false;
+        private readonly bool printEvaluatedMoves = true;
         #endregion
 
         #region counters
@@ -46,13 +62,17 @@ namespace SearchEngine
         private List<EvaluatedNode> moveEvaluationList { get; set; }
         #endregion
 
-        public AISearchEngine(AIUtils.eEval function, int color)
+        public AISearchEngine(AIUtils.eEval function, int color, int searchtime)
         {
             evaluationF = function;
             myColor = color;
+            searchTime = searchtime;
         }
 
-        public BoardState search(BoardState root)
+        /// <summary>
+        /// Search method where [root] is the current state to investigate
+        /// </summary>
+        public BoardState Search(BoardState root)
         {
             // print current state of the board
             CannonUtils.printBoard(root, false);
@@ -82,19 +102,26 @@ namespace SearchEngine
             {
                 moveEvaluationList = new List<EvaluatedNode>();
 
-                int bestValue = AlphaBeta(root, alpha, beta, d, myColor, 0, isMultiCut);
+                // Alpha beta search
+                int bestValue = NegaMax(root, alpha, beta, d, myColor, 0, isMultiCut);
+
+                // print search statistics
                 var elapsed = stopWatch.ElapsedMilliseconds;
                 Console.WriteLine("Depth = " + d +
                     ", Nodes Evaluated = " + nodesEvaluated +
                     " after " + elapsed.ToString() + "[ms]");
 
-                if (elapsed > 60000)
+                // check if time elapsed bigger than time threshold
+                if (elapsed > searchTime)
                 {
                     break;
                 }
 
+                #region Aspiration Window
+                // Aspiration window scheme
                 if (isAspirationalSearch)
                 {
+                    // if score out of bounds, restart window
                     if((bestValue <= alpha) || (bestValue >=beta))
                     {
                         alpha = -50000;
@@ -102,11 +129,14 @@ namespace SearchEngine
                         continue;
                     }
 
+                    // narrow search
                     alpha = bestValue - 50;
                     beta = bestValue + 50;
                 }
+                #endregion
             }
 
+            #region printings
             if (printEvaluatedMoves)
             {
                 List<EvaluatedNode> newEvaluatedL = moveEvaluationList.OrderByDescending(x => x.value).ToList();
@@ -115,6 +145,9 @@ namespace SearchEngine
             Console.WriteLine();
             Console.WriteLine("AI optimal move:");
             CannonUtils.printMove(root.legalMoves[optimalMove], optimalMove);
+            #endregion
+
+            // update board position with bestMove and return
             BoardState new_s = root.Successor(optimalMove);
 
             return new_s;
@@ -124,7 +157,7 @@ namespace SearchEngine
         /// Decision algorithm to find the best move given current state of the board
         /// Call: AlphaBetaWithTT(s, -inf, inf, depth)
         /// </summary>
-        private int AlphaBeta(BoardState s, int alpha, int beta, int depth, int color, int ply, bool cut)
+        private int NegaMax(BoardState s, int alpha, int beta, int depth, int color, int ply, bool cut)
         {
             // increment node counter
             nodesEvaluated++;
@@ -180,7 +213,7 @@ namespace SearchEngine
                 copyBoard.generateLegalMoves();
 
                 // search with reduced depth
-                int result = -AlphaBeta(copyBoard, -beta, -alpha, depth - 1 - R, -color, ply + 1, false);
+                int result = -NegaMax(copyBoard, -beta, -alpha, depth - 1 - R, -color, ply + 1, false);
 
                 if(result >= beta) return beta;
             }
@@ -202,7 +235,7 @@ namespace SearchEngine
                 while (m < M && m < successor_list.Count)
                 {
                     // search with reduced depth
-                    int result = -AlphaBeta(s.Successor(m), -beta, -alpha, depth - 1 - R, -color, ply + 1, false);
+                    int result = -NegaMax(s.Successor(m), -beta, -alpha, depth - 1 - R, -color, ply + 1, false);
                     if (result > bestValue)
                     {
                         bestValue = result;
@@ -229,9 +262,11 @@ namespace SearchEngine
             // start searching all children again
             #endregion
 
+            // Alpha beta search
             foreach (int child in successor_list)
             {
-                int result = -AlphaBeta(s.Successor(child), -beta, -alpha, depth - 1, -color, ply + 1, false);
+                int result = -NegaMax(s.Successor(child), -beta, -alpha, depth - 1, -color, ply + 1, false);
+                
                 if(ply == 0) moveEvaluationList.Add(new EvaluatedNode() {depth=depth, move=s.legalMoves[child], value=result });
 
                 if (result > bestValue)
@@ -243,7 +278,7 @@ namespace SearchEngine
                 if (bestValue > alpha) { alpha = bestValue; }
                 if (bestValue >= beta)
                 {
-                    // Killer move ordering and insert new move
+                    // Update Killer moves
                     killerMoves[ply,1] = killerMoves[ply,0];
                     killerMoves[ply,0] = s.legalMoves[bestMove];
                     prunnings++;

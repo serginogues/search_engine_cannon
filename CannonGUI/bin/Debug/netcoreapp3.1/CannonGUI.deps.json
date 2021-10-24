@@ -1,0 +1,50 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v3.1",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v3.1": {
+      "CannonGUI/1.0.0": {
+        "dependencies": {
+          "CannonModel": "1.0.0",
+          "SearchEngine": "1.0.0"
+        },
+        "runtime": {
+          "CannonGUI.dll": {}
+        }
+      },
+      "CannonModel/1.0.0": {
+        "runtime": {
+          "CannonModel.dll": {}
+        }
+      },
+      "SearchEngine/1.0.0": {
+        "dependencies": {
+          "CannonModel": "1.0.0"
+        },
+        "runtime": {
+          "SearchEngine.dll": {}
+        }
+      }
+    }
+  },
+  "libraries": {
+    "CannonGUI/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "CannonModel/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "SearchEngine/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+}

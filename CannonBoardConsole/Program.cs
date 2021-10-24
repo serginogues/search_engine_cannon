@@ -38,7 +38,7 @@ namespace CannonBoardConsole
             Random rand = new Random();
             darkP.addTown(darkIsAi, root, rand);
             lightP.addTown(lightIsAi, root, rand);
-            //root = CannonUtils.readBoard();
+            root = CannonUtils.readBoard();
 
             // Play game
             for (int turn = 0; turn < 1000; turn++)

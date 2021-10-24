@@ -1,18 +1,17 @@
-﻿using CannonModel;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
+using CannonGUI;
+using CannonModel;
 using SearchEngine;
-
-namespace CannonBoardConsole
+namespace CannonGUI
 {
-    public class MoveManager
+    public class Player
     {
         private readonly AISearchEngine searchEngine;
 
-        public MoveManager(AISearchEngine ai)
+        public Player(AISearchEngine ai)
         {
             searchEngine = ai;
         }
@@ -38,10 +37,27 @@ namespace CannonBoardConsole
             }
             else
             {
-                Console.WriteLine();
-                Console.WriteLine("Write a column number to place Town:");
-                int column = readActionId();
-                root.AddTown(column, root.friendSoldier);
+                bool isTown = true;
+                while (isTown)
+                {
+                    try
+                    {
+                        Console.WriteLine();
+                        Console.WriteLine("Write a column number to place Town:");
+                        int column = readActionId();
+                        if (column > 0 && column < 10)
+                        {
+                            root.AddTown(column, root.friendSoldier);
+                            isTown = false;
+                        }
+                        else { Console.WriteLine("Error. Try Again.");  }
+                    }
+                    catch (Exception) 
+                    {
+                        Console.WriteLine("Error. Try Again.");
+                        isTown = true; 
+                    }
+                }
             }
             return root;
         }
@@ -104,7 +120,7 @@ namespace CannonBoardConsole
             CannonUtils.printBoard(newB);
 
             return newB;
-            
+
         }
         private int readActionId()
         {
